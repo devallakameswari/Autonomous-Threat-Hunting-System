@@ -1,0 +1,33 @@
+Aug 28 09:12:01 webserver sshd[1023]: Failed password for invalid user admin from 203.0.113.55 port 51322 ssh2
+Aug 28 09:12:03 webserver sshd[1023]: Failed password for invalid user admin from 203.0.113.55 port 51330 ssh2
+Aug 28 09:12:05 webserver sshd[1023]: Failed password for invalid user root from 203.0.113.55 port 51340 ssh2
+Aug 28 09:12:07 webserver sshd[1023]: Failed password for invalid user root from 203.0.113.55 port 51345 ssh2
+Aug 28 09:12:09 webserver sshd[1023]: Failed password for invalid user root from 203.0.113.55 port 51350 ssh2
+Aug 28 09:12:11 webserver sshd[1023]: Failed password for invalid user test from 203.0.113.55 port 51360 ssh2
+Aug 28 09:12:15 webserver sshd[1023]: Accepted password for root from 203.0.113.55 port 51370 ssh2
+Aug 28 09:15:22 webserver sshd[2044]: Accepted password for jdoe from 192.168.1.20 port 44210 ssh2
+198.51.100.23 - - [28/Aug/2026:09:20:11 +0000] "GET /index.html HTTP/1.1" 200 1024 "-" "Mozilla/5.0"
+198.51.100.23 - - [28/Aug/2026:09:20:12 +0000] "GET /admin.php HTTP/1.1" 404 512 "-" "Mozilla/5.0"
+198.51.100.23 - - [28/Aug/2026:09:20:13 +0000] "GET /phpmyadmin/ HTTP/1.1" 404 512 "-" "sqlmap/1.7"
+198.51.100.23 - - [28/Aug/2026:09:20:14 +0000] "GET /login.php?id=1' OR '1'='1 HTTP/1.1" 500 890 "-" "sqlmap/1.7"
+198.51.100.23 - - [28/Aug/2026:09:20:15 +0000] "GET /wp-login.php HTTP/1.1" 404 512 "-" "sqlmap/1.7"
+203.0.113.99 attempted connection to port 22 on host 10.0.0.5 - CLOSED
+203.0.113.99 attempted connection to port 23 on host 10.0.0.5 - CLOSED
+203.0.113.99 attempted connection to port 80 on host 10.0.0.5 - CLOSED
+203.0.113.99 attempted connection to port 443 on host 10.0.0.5 - CLOSED
+203.0.113.99 attempted connection to port 3306 on host 10.0.0.5 - CLOSED
+203.0.113.99 attempted connection to port 3389 on host 10.0.0.5 - CLOSED
+203.0.113.99 attempted connection to port 5432 on host 10.0.0.5 - CLOSED
+203.0.113.99 attempted connection to port 8080 on host 10.0.0.5 - CLOSED
+203.0.113.99 attempted connection to port 8443 on host 10.0.0.5 - CLOSED
+203.0.113.99 attempted connection to port 9200 on host 10.0.0.5 - CLOSED
+203.0.113.99 attempted connection to port 27017 on host 10.0.0.5 - CLOSED
+Aug 28 09:30:01 fileserver kernel: large outbound transfer 850000000 bytes to 45.33.32.156 from user svc_backup
+Aug 28 09:31:44 dc01 EventID=4625 Account Name: administrator Source Network Address: 172.16.5.9 Failure Reason: Unknown user name or bad password
+Aug 28 09:31:46 dc01 EventID=4625 Account Name: administrator Source Network Address: 172.16.5.9 Failure Reason: Unknown user name or bad password
+Aug 28 09:31:48 dc01 EventID=4625 Account Name: administrator Source Network Address: 172.16.5.9 Failure Reason: Unknown user name or bad password
+Aug 28 09:31:50 dc01 EventID=4624 Account Name: administrator Source Network Address: 172.16.5.9 Logon Type: 3
+Aug 28 09:40:12 webserver sshd[3311]: Accepted publickey for deploy from 192.168.1.15 port 55210 ssh2
+Aug 28 09:41:00 webserver app: user jdoe uploaded file report_q3.pdf size=204800
+Aug 28 09:42:33 webserver app: connection from known malicious IP 185.220.101.7 blocked by firewall
+Aug 28 09:45:19 webserver app: GET /api/users HTTP/1.1 200 OK user=jdoe latency_ms=45

@@ -1,0 +1,764 @@
+{% extends "base.html" %}
+
+{% block title %}
+Analyze Logs - Autonomous Threat Hunting System
+{% endblock %}
+
+{% block page_title %}
+Analyze Logs
+{% endblock %}
+
+{% block head %}
+<style>
+    .analyze-page {
+        width: 100%;
+        color: #1f2937;
+    }
+
+    .analyze-page * {
+        box-sizing: border-box;
+    }
+
+    .analyze-header {
+        margin-bottom: 24px;
+    }
+
+    .analyze-header h2 {
+        margin: 0 0 8px;
+        font-size: 26px;
+        font-weight: 700;
+    }
+
+    .analyze-header p {
+        margin: 0;
+        color: #64748b;
+        line-height: 1.6;
+    }
+
+    .analyze-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 22px;
+        margin-bottom: 24px;
+    }
+
+    .analyze-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 24px;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+    }
+
+    .analyze-card h3 {
+        margin: 0 0 8px;
+        font-size: 19px;
+        font-weight: 700;
+    }
+
+    .analyze-card > p {
+        margin: 0 0 18px;
+        color: #64748b;
+        line-height: 1.6;
+    }
+
+    .upload-zone {
+        border: 2px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 30px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: border-color .2s ease, background .2s ease;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.dragover {
+        border-color: #2563eb;
+        background: #eff6ff;
+    }
+
+    .upload-zone-title {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 6px;
+    }
+
+    .upload-zone-subtitle {
+        color: #64748b;
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+
+    .upload-zone small {
+        color: #94a3b8;
+    }
+
+    .file-name {
+        margin-top: 12px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #2563eb;
+        min-height: 20px;
+    }
+
+    .hidden-input {
+        display: none;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 7px;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .form-input {
+        width: 100%;
+        height: 44px;
+        border: 1px solid #cbd5e1;
+        border-radius: 9px;
+        padding: 0 13px;
+        font-size: 14px;
+        outline: none;
+        background: #fff;
+    }
+
+    .form-input:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, .10);
+    }
+
+    .action-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        border: 0;
+        border-radius: 9px;
+        padding: 0 18px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        background: #2563eb;
+        color: #fff;
+    }
+
+    .action-button:disabled {
+        opacity: .6;
+        cursor: not-allowed;
+    }
+
+    .secondary-button {
+        background: #0f172a;
+    }
+
+    .analysis-message {
+        margin-top: 18px;
+        padding: 13px 14px;
+        border-radius: 9px;
+        display: none;
+        line-height: 1.5;
+        font-size: 14px;
+    }
+
+    .analysis-message.success {
+        display: block;
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        color: #065f46;
+    }
+
+    .analysis-message.error {
+        display: block;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+    }
+
+    .ip-results {
+        display: none;
+        margin-top: 24px;
+    }
+
+    .ip-results.visible {
+        display: block;
+    }
+
+    .results-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+
+    .results-header h3 {
+        margin: 0;
+        font-size: 20px;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .summary-box {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 14px;
+    }
+
+    .summary-label {
+        color: #64748b;
+        font-size: 12px;
+        margin-bottom: 5px;
+    }
+
+    .summary-value {
+        font-size: 22px;
+        font-weight: 700;
+    }
+
+    .threat-list {
+        display: grid;
+        gap: 16px;
+    }
+
+    .threat-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 18px;
+    }
+
+    .threat-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 14px;
+    }
+
+    .threat-title {
+        margin: 0 0 5px;
+        font-size: 17px;
+        font-weight: 700;
+    }
+
+    .threat-type {
+        color: #64748b;
+        font-size: 13px;
+    }
+
+    .severity {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: 12px;
+        font-weight: 700;
+        background: #f1f5f9;
+        color: #334155;
+        white-space: nowrap;
+    }
+
+    .threat-meta {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .meta-item {
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 10px;
+    }
+
+    .meta-label {
+        display: block;
+        color: #64748b;
+        font-size: 11px;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+    }
+
+    .meta-value {
+        font-size: 13px;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+    }
+
+    .llm-section {
+        margin-top: 14px;
+        border: 1px solid #dbeafe;
+        background: #f8fbff;
+        border-radius: 10px;
+        padding: 14px;
+    }
+
+    .llm-title {
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .llm-text {
+        margin: 0;
+        color: #334155;
+        line-height: 1.65;
+        white-space: pre-wrap;
+    }
+
+    .llm-empty {
+        color: #64748b;
+        font-style: italic;
+    }
+
+    .related-logs {
+        margin-top: 18px;
+    }
+
+    .related-logs h4 {
+        margin: 0 0 9px;
+        font-size: 14px;
+    }
+
+    .log-row {
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 8px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 12px;
+        line-height: 1.55;
+        overflow-wrap: anywhere;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 28px 18px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 10px;
+        color: #64748b;
+        background: #f8fafc;
+    }
+
+    @media (max-width: 1000px) {
+        .analyze-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .summary-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .threat-meta {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 640px) {
+        .summary-grid,
+        .threat-meta {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="analyze-page">
+    <div class="analyze-header">
+        <h2>Analyze Logs</h2>
+        <p>
+            Upload a security log file for autonomous threat detection and analysis.
+        </p>
+    </div>
+
+    <div class="analyze-grid">
+        <!-- Upload card -->
+        <section class="analyze-card">
+            <h3>Upload a Log File</h3>
+            <p>
+                Upload a security log file and let the detection engine analyze it for threats.
+            </p>
+
+            <form method="POST" action="{{ url_for('upload') }}" enctype="multipart/form-data" id="uploadForm">
+                <div
+                    class="upload-zone"
+                    id="uploadZone"
+                    role="button"
+                    tabindex="0"
+                    aria-label="Choose a security log file"
+                >
+                    <div class="upload-zone-title">Drag &amp; drop a log file here</div>
+                    <div class="upload-zone-subtitle">or click to browse</div>
+                    <small><strong>Supported formats:</strong> .log, .txt, .csv, .json</small>
+                    <div class="file-name" id="fileName"></div>
+                </div>
+
+                <input
+                    class="hidden-input"
+                    id="logfile"
+                    name="logfile"
+                    type="file"
+                    accept=".log,.txt,.csv,.json,text/plain,text/csv,application/json"
+                    required
+                >
+
+                <div style="margin-top:16px;">
+                    <button class="action-button" type="submit" id="uploadButton">
+                        Analyze Log File
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Analyze by IP card -->
+        <section class="analyze-card">
+            <h3>Analyze by IP Address</h3>
+            <p>
+                Enter one IP address to analyze all associated threats and matching logs.
+                The analysis checks both <strong>Source IP</strong> and <strong>Destination IP</strong>.
+            </p>
+
+            <form id="ipAnalysisForm">
+                <div class="form-group">
+                    <label class="form-label" for="ipAddress">IP Address</label>
+                    <input
+                        class="form-input"
+                        id="ipAddress"
+                        name="ip"
+                        type="text"
+                        placeholder="Example: 192.168.1.10"
+                        autocomplete="off"
+                        required
+                    >
+                </div>
+
+                <button class="action-button secondary-button" type="submit" id="analyzeIpButton">
+                    Analyze IP
+                </button>
+            </form>
+
+            <div id="ipMessage" class="analysis-message"></div>
+        </section>
+    </div>
+
+    <section class="ip-results" id="ipResults">
+        <div class="results-header">
+            <h3 id="resultsTitle">IP Analysis Results</h3>
+            <button type="button" class="action-button" id="clearResultsButton">Clear</button>
+        </div>
+
+        <div class="summary-grid" id="summaryGrid"></div>
+        <div class="threat-list" id="threatList"></div>
+    </section>
+</div>
+
+<script>
+(function () {
+    "use strict";
+
+    const uploadZone = document.getElementById("uploadZone");
+    const fileInput = document.getElementById("logfile");
+    const fileName = document.getElementById("fileName");
+    const uploadForm = document.getElementById("uploadForm");
+    const uploadButton = document.getElementById("uploadButton");
+
+    const ipForm = document.getElementById("ipAnalysisForm");
+    const ipInput = document.getElementById("ipAddress");
+    const analyzeIpButton = document.getElementById("analyzeIpButton");
+    const ipMessage = document.getElementById("ipMessage");
+
+    const ipResults = document.getElementById("ipResults");
+    const resultsTitle = document.getElementById("resultsTitle");
+    const summaryGrid = document.getElementById("summaryGrid");
+    const threatList = document.getElementById("threatList");
+    const clearResultsButton = document.getElementById("clearResultsButton");
+
+    function escapeHtml(value) {
+        const text = value == null ? "" : String(value);
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function firstValue(object, keys, fallback = "") {
+        for (const key of keys) {
+            if (object && object[key] !== undefined && object[key] !== null && String(object[key]).trim() !== "") {
+                return object[key];
+            }
+        }
+        return fallback;
+    }
+
+    function getLLMExplanation(threat) {
+        return firstValue(
+            threat,
+            ["llm_summary", "llm_explanation", "explanation"],
+            ""
+        );
+    }
+
+    function formatConfidence(value) {
+        if (value === undefined || value === null || value === "") {
+            return "0%";
+        }
+
+        const number = Number(value);
+        if (!Number.isFinite(number)) {
+            return escapeHtml(value);
+        }
+
+        return `${number.toFixed(2).replace(/\.00$/, "")}%`;
+    }
+
+    function formatDate(value) {
+        if (!value) {
+            return "Not available";
+        }
+
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+            return String(value);
+        }
+
+        return date.toLocaleString();
+    }
+
+    function setIpMessage(message, type) {
+        ipMessage.textContent = message || "";
+        ipMessage.className = "analysis-message" + (message ? ` ${type || "success"}` : "");
+    }
+
+    function renderSummary(summary) {
+        const items = [
+            ["Threats", summary.total_threats ?? 0],
+            ["Critical", summary.critical ?? 0],
+            ["High", summary.high ?? 0],
+            ["Medium", summary.medium ?? 0],
+            ["Logs", summary.log_count ?? 0]
+        ];
+
+        summaryGrid.innerHTML = items.map(([label, value]) => `
+            <div class="summary-box">
+                <div class="summary-label">${escapeHtml(label)}</div>
+                <div class="summary-value">${escapeHtml(value)}</div>
+            </div>
+        `).join("");
+    }
+
+    function renderThreats(threats, logs) {
+        if (!Array.isArray(threats) || threats.length === 0) {
+            threatList.innerHTML = `
+                <div class="empty-state">
+                    No detected threats were found for this IP address.
+                </div>
+            `;
+            return;
+        }
+
+        threatList.innerHTML = threats.map((threat) => {
+            const title = firstValue(threat, ["title"], "Threat Detected");
+            const threatType = firstValue(threat, ["threat_type", "type"], "Unknown");
+            const severity = firstValue(threat, ["severity"], "Unknown");
+            const detectedBy = firstValue(threat, ["detection_source", "detected_by", "detector"], "Unknown");
+            const confidence = firstValue(threat, ["confidence"], 0);
+            const sourceIp = firstValue(threat, ["source_ip", "src_ip"], "-");
+            const destinationIp = firstValue(threat, ["dest_ip", "dst_ip", "destination_ip"], "-");
+            const status = firstValue(threat, ["status"], "Unknown");
+            const when = firstValue(threat, ["analyzed_at", "created_at", "updated_at"], null);
+            const description = firstValue(threat, ["description"], "");
+            const llmExplanation = getLLMExplanation(threat);
+
+            const relatedLogHtml = Array.isArray(logs) && logs.length > 0
+                ? `
+                    <div class="related-logs">
+                        <h4>Matching Logs</h4>
+                        ${logs.slice(0, 5).map(log => {
+                            const raw = firstValue(log, ["raw_line", "message", "event"], JSON.stringify(log));
+                            return `<div class="log-row">${escapeHtml(raw)}</div>`;
+                        }).join("")}
+                    </div>
+                `
+                : "";
+
+            return `
+                <article class="threat-card">
+                    <div class="threat-top">
+                        <div>
+                            <h4 class="threat-title">${escapeHtml(title)}</h4>
+                            <div class="threat-type">${escapeHtml(threatType)}</div>
+                        </div>
+                        <span class="severity">${escapeHtml(String(severity).toUpperCase())}</span>
+                    </div>
+
+                    <div class="threat-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">Detected By</span>
+                            <span class="meta-value">${escapeHtml(detectedBy)}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Confidence</span>
+                            <span class="meta-value">${formatConfidence(confidence)}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Source IP</span>
+                            <span class="meta-value">${escapeHtml(sourceIp)}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Destination IP</span>
+                            <span class="meta-value">${escapeHtml(destinationIp)}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Status</span>
+                            <span class="meta-value">${escapeHtml(status)}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">When</span>
+                            <span class="meta-value">${escapeHtml(formatDate(when))}</span>
+                        </div>
+                    </div>
+
+                    ${description ? `
+                        <div class="llm-section" style="background:#fff;border-color:#e2e8f0;">
+                            <div class="llm-title">Threat Description</div>
+                            <p class="llm-text">${escapeHtml(description)}</p>
+                        </div>
+                    ` : ""}
+
+                    <div class="llm-section">
+                        <div class="llm-title">LLM Explanation</div>
+                        ${llmExplanation
+                            ? `<p class="llm-text">${escapeHtml(llmExplanation)}</p>`
+                            : `<p class="llm-text llm-empty">LLM explanation is not available for this threat.</p>`
+                        }
+                    </div>
+
+                    ${relatedLogHtml}
+                </article>
+            `;
+        }).join("");
+    }
+
+    uploadZone.addEventListener("click", () => fileInput.click());
+    uploadZone.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            fileInput.click();
+        }
+    });
+
+    ["dragenter", "dragover"].forEach(eventName => {
+        uploadZone.addEventListener(eventName, (event) => {
+            event.preventDefault();
+            uploadZone.classList.add("dragover");
+        });
+    });
+
+    ["dragleave", "drop"].forEach(eventName => {
+        uploadZone.addEventListener(eventName, (event) => {
+            event.preventDefault();
+            uploadZone.classList.remove("dragover");
+        });
+    });
+
+    uploadZone.addEventListener("drop", (event) => {
+        const files = event.dataTransfer && event.dataTransfer.files;
+        if (files && files.length > 0) {
+            fileInput.files = files;
+            fileName.textContent = files[0].name;
+        }
+    });
+
+    fileInput.addEventListener("change", () => {
+        fileName.textContent = fileInput.files && fileInput.files.length
+            ? fileInput.files[0].name
+            : "";
+    });
+
+    uploadForm.addEventListener("submit", () => {
+        uploadButton.disabled = true;
+        uploadButton.textContent = "Analyzing...";
+    });
+
+    ipForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const ip = ipInput.value.trim();
+        if (!ip) {
+            setIpMessage("Please enter an IP address.", "error");
+            return;
+        }
+
+        analyzeIpButton.disabled = true;
+        analyzeIpButton.textContent = "Analyzing...";
+        setIpMessage("Analyzing threats and matching logs...", "success");
+        ipResults.classList.remove("visible");
+
+        try {
+            const response = await fetch(`/api/threats/by-ip?ip=${encodeURIComponent(ip)}`, {
+                method: "GET",
+                headers: {
+                    "Accept": "application/json"
+                },
+                credentials: "same-origin"
+            });
+
+            const payload = await response.json().catch(() => null);
+
+            if (!response.ok || !payload || payload.success === false) {
+                throw new Error(
+                    payload && payload.message
+                        ? payload.message
+                        : "Unable to analyze this IP address."
+                );
+            }
+
+            const data = payload.data || {};
+            const threats = Array.isArray(data.threats) ? data.threats : [];
+            const logs = Array.isArray(data.logs) ? data.logs : [];
+            const summary = data.summary || {};
+
+            resultsTitle.textContent = `IP Analysis Results — ${data.ip || ip}`;
+            renderSummary(summary);
+            renderThreats(threats, logs);
+            ipResults.classList.add("visible");
+
+            setIpMessage(
+                payload.message || `Analysis completed for ${data.ip || ip}.`,
+                "success"
+            );
+        } catch (error) {
+            setIpMessage(error.message || "IP analysis failed.", "error");
+            ipResults.classList.remove("visible");
+        } finally {
+            analyzeIpButton.disabled = false;
+            analyzeIpButton.textContent = "Analyze IP";
+        }
+    });
+
+    clearResultsButton.addEventListener("click", () => {
+        ipResults.classList.remove("visible");
+        summaryGrid.innerHTML = "";
+        threatList.innerHTML = "";
+        setIpMessage("", "");
+    });
+})();
+</script>
+{% endblock %}

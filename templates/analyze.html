@@ -1,0 +1,2694 @@
+{% extends "base.html" %}
+
+{% block title %}
+Analyze Logs - Autonomous Threat Hunting System
+{% endblock %}
+
+{% block page_title %}
+Analyze Logs
+{% endblock %}
+
+{% block head %}
+
+<style>
+
+/* =========================================================
+   ANALYZE PAGE
+========================================================= */
+
+.analyze-page {
+    width: 100%;
+    max-width: 100%;
+    padding-bottom: 30px;
+}
+
+.analyze-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 25px;
+}
+
+.analyze-title {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 800;
+}
+
+.analyze-subtitle {
+    margin: 6px 0 0;
+    opacity: .65;
+    font-size: 14px;
+}
+
+.analyze-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 13px;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.analyze-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 10px rgba(16,185,129,.8);
+}
+
+
+/* =========================================================
+   PANELS
+========================================================= */
+
+.analyze-panel {
+    position: relative;
+    width: 100%;
+    border-radius: 18px;
+    padding: 22px;
+    margin-bottom: 22px;
+    overflow: hidden;
+}
+
+.analyze-panel-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 18px;
+}
+
+.analyze-panel-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.analyze-panel-description {
+    margin: 5px 0 0;
+    font-size: 12px;
+    opacity: .58;
+}
+
+.analyze-panel-icon {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 11px;
+
+    background: rgba(139,92,246,.12);
+    color: #8b5cf6;
+
+    font-size: 18px;
+}
+
+
+/* =========================================================
+   UPLOAD AREA
+========================================================= */
+
+.upload-zone {
+    position: relative;
+
+    width: 100%;
+    min-height: 230px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 2px dashed rgba(139,92,246,.35);
+    border-radius: 16px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(139,92,246,.04),
+            rgba(236,72,153,.03)
+        );
+
+    cursor: pointer;
+
+    transition:
+        border-color .2s ease,
+        background .2s ease,
+        transform .2s ease;
+}
+
+.upload-zone:hover {
+    border-color: rgba(139,92,246,.65);
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(139,92,246,.08),
+            rgba(236,72,153,.05)
+        );
+}
+
+.upload-zone.dragover {
+    border-color: #8b5cf6;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(139,92,246,.12),
+            rgba(236,72,153,.08)
+        );
+
+    transform: scale(1.005);
+}
+
+.upload-zone-content {
+    text-align: center;
+    padding: 30px 20px;
+}
+
+.upload-icon {
+    width: 65px;
+    height: 65px;
+
+    margin: 0 auto 15px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 17px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(139,92,246,.15),
+            rgba(236,72,153,.12)
+        );
+
+    color: #8b5cf6;
+
+    font-size: 26px;
+}
+
+.upload-zone h3 {
+    margin: 0;
+
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.upload-zone p {
+    margin: 7px 0 0;
+
+    font-size: 12px;
+    opacity: .58;
+}
+
+.upload-zone small {
+    display: block;
+
+    margin-top: 10px;
+
+    font-size: 10px;
+    opacity: .45;
+}
+
+
+/* =========================================================
+   FILE INPUT
+========================================================= */
+
+#logFileInput {
+    display: none;
+}
+
+
+/* =========================================================
+   SELECTED FILE
+========================================================= */
+
+.selected-file {
+    display: none;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    margin-top: 15px;
+
+    padding: 13px 15px;
+
+    border-radius: 11px;
+
+    background: rgba(128,128,128,.08);
+
+    border: 1px solid rgba(128,128,128,.12);
+}
+
+.selected-file.visible {
+    display: flex;
+}
+
+.selected-file-info {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+}
+
+.selected-file-icon {
+    width: 34px;
+    height: 34px;
+
+    min-width: 34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 9px;
+
+    background: rgba(139,92,246,.12);
+
+    color: #8b5cf6;
+}
+
+.selected-file-name {
+    min-width: 0;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.selected-file-size {
+    margin-top: 2px;
+
+    font-size: 10px;
+
+    opacity: .5;
+}
+
+.remove-file-btn {
+    width: 32px;
+    height: 32px;
+
+    min-width: 32px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 0;
+    border-radius: 8px;
+
+    background: rgba(239,68,68,.1);
+
+    color: #ef4444;
+
+    cursor: pointer;
+}
+
+.remove-file-btn:hover {
+    background: rgba(239,68,68,.18);
+}
+
+
+/* =========================================================
+   ANALYZE BUTTON
+========================================================= */
+
+.analyze-actions {
+    display: flex;
+    justify-content: flex-end;
+
+    margin-top: 18px;
+}
+
+.analyze-btn {
+    min-width: 190px;
+
+    height: 48px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 9px;
+
+    padding: 0 20px;
+
+    border: 0;
+    border-radius: 11px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #db2777
+        );
+
+    color: white;
+
+    font-size: 13px;
+    font-weight: 800;
+
+    cursor: pointer;
+
+    transition:
+        transform .2s ease,
+        box-shadow .2s ease,
+        opacity .2s ease;
+}
+
+.analyze-btn:hover {
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 8px 20px rgba(124,58,237,.25);
+}
+
+.analyze-btn:disabled {
+    opacity: .55;
+
+    cursor: not-allowed;
+
+    transform: none;
+
+    box-shadow: none;
+}
+
+.analyze-btn .spinner {
+    display: none;
+}
+
+.analyze-btn.loading .spinner {
+    display: inline-block;
+}
+
+.analyze-btn.loading .btn-text {
+    display: none;
+}
+
+.spinner {
+    width: 16px;
+    height: 16px;
+
+    border: 2px solid rgba(255,255,255,.35);
+    border-top-color: white;
+
+    border-radius: 50%;
+
+    animation: analyzeSpin .8s linear infinite;
+}
+
+@keyframes analyzeSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+
+/* =========================================================
+   MESSAGE
+========================================================= */
+
+.analyze-message {
+    display: none;
+
+    align-items: flex-start;
+
+    gap: 10px;
+
+    margin-top: 16px;
+
+    padding: 13px 15px;
+
+    border-radius: 10px;
+
+    font-size: 12px;
+
+    line-height: 1.5;
+}
+
+.analyze-message.visible {
+    display: flex;
+}
+
+.analyze-message.success {
+    background: rgba(16,185,129,.10);
+    border: 1px solid rgba(16,185,129,.18);
+    color: #10b981;
+}
+
+.analyze-message.error {
+    background: rgba(239,68,68,.10);
+    border: 1px solid rgba(239,68,68,.18);
+    color: #ef4444;
+}
+
+.analyze-message.warning {
+    background: rgba(245,158,11,.10);
+    border: 1px solid rgba(245,158,11,.18);
+    color: #f59e0b;
+}
+
+
+/* =========================================================
+   RESULTS
+========================================================= */
+
+.results-section {
+    display: none;
+}
+
+.results-section.visible {
+    display: block;
+}
+
+.results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    margin-bottom: 18px;
+}
+
+.results-title {
+    margin: 0;
+
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.results-count {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 7px 11px;
+
+    border-radius: 20px;
+
+    background: rgba(139,92,246,.12);
+
+    color: #8b5cf6;
+
+    font-size: 11px;
+    font-weight: 800;
+}
+
+
+/* =========================================================
+   RESULT SUMMARY
+========================================================= */
+
+.result-summary {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 14px;
+
+    margin-bottom: 20px;
+}
+
+.result-summary-card {
+    padding: 17px;
+
+    border-radius: 13px;
+
+    background: rgba(128,128,128,.07);
+
+    border: 1px solid rgba(128,128,128,.10);
+}
+
+.result-summary-card span {
+    display: block;
+
+    font-size: 9px;
+
+    font-weight: 800;
+
+    letter-spacing: .6px;
+
+    opacity: .55;
+
+    text-transform: uppercase;
+}
+
+.result-summary-card strong {
+    display: block;
+
+    margin-top: 7px;
+
+    font-size: 27px;
+
+    line-height: 1;
+
+    font-weight: 850;
+}
+
+
+/* =========================================================
+   THREAT TABLE
+========================================================= */
+
+.results-table-wrapper {
+    width: 100%;
+
+    overflow-x: auto;
+
+    border-radius: 12px;
+}
+
+.results-table {
+    width: 100%;
+
+    min-width: 850px;
+
+    border-collapse: collapse;
+
+    font-size: 12px;
+}
+
+.results-table th {
+    padding: 12px 10px;
+
+    text-align: left;
+
+    font-size: 9px;
+
+    letter-spacing: .7px;
+
+    text-transform: uppercase;
+
+    opacity: .52;
+
+    border-bottom:
+        1px solid rgba(128,128,128,.16);
+
+    white-space: nowrap;
+}
+
+.results-table td {
+    padding: 13px 10px;
+
+    border-bottom:
+        1px solid rgba(128,128,128,.10);
+
+    vertical-align: middle;
+}
+
+.results-table tbody tr:hover {
+    background: rgba(128,128,128,.035);
+}
+
+
+/* =========================================================
+   BADGES
+========================================================= */
+
+.threat-badge {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 5px 9px;
+
+    border-radius: 12px;
+
+    font-size: 9px;
+
+    font-weight: 850;
+
+    letter-spacing: .4px;
+
+    white-space: nowrap;
+}
+
+.threat-badge.critical {
+    background: rgba(239,68,68,.12);
+    color: #ef4444;
+}
+
+.threat-badge.high {
+    background: rgba(249,115,22,.12);
+    color: #f97316;
+}
+
+.threat-badge.medium {
+    background: rgba(234,179,8,.12);
+    color: #ca8a04;
+}
+
+.threat-badge.low {
+    background: rgba(16,185,129,.12);
+    color: #10b981;
+}
+
+.threat-badge.info {
+    background: rgba(59,130,246,.12);
+    color: #3b82f6;
+}
+
+
+/* =========================================================
+   CONFIDENCE
+========================================================= */
+
+.confidence-value {
+    font-weight: 800;
+}
+
+.confidence-high {
+    color: #10b981;
+}
+
+.confidence-medium {
+    color: #f59e0b;
+}
+
+.confidence-low {
+    color: #ef4444;
+}
+
+
+/* =========================================================
+   THREAT TYPE
+========================================================= */
+
+.threat-type {
+    font-weight: 750;
+}
+
+.threat-title {
+    display: block;
+
+    margin-top: 3px;
+
+    font-size: 10px;
+
+    opacity: .5;
+
+    max-width: 260px;
+}
+
+
+/* =========================================================
+   IP
+========================================================= */
+
+.ip-address {
+    font-family:
+        "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+
+    font-size: 11px;
+
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   EMPTY RESULTS
+========================================================= */
+
+.results-empty {
+    display: none;
+
+    text-align: center;
+
+    padding: 45px 20px;
+
+    opacity: .55;
+}
+
+.results-empty.visible {
+    display: block;
+}
+
+.results-empty i {
+    display: block;
+
+    margin-bottom: 12px;
+
+    font-size: 34px;
+
+    opacity: .45;
+}
+
+.results-empty strong {
+    display: block;
+
+    font-size: 15px;
+
+    margin-bottom: 5px;
+}
+
+.results-empty span {
+    font-size: 11px;
+}
+
+
+/* =========================================================
+   ANALYZED LOG INFO
+========================================================= */
+
+.analysis-info {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 12px;
+
+    margin-top: 20px;
+}
+
+.analysis-info-item {
+    padding: 13px;
+
+    border-radius: 11px;
+
+    background: rgba(128,128,128,.06);
+}
+
+.analysis-info-item span {
+    display: block;
+
+    font-size: 9px;
+
+    text-transform: uppercase;
+
+    letter-spacing: .6px;
+
+    opacity: .5;
+}
+
+.analysis-info-item strong {
+    display: block;
+
+    margin-top: 5px;
+
+    font-size: 12px;
+
+    font-weight: 750;
+
+    word-break: break-word;
+}
+
+
+/* =========================================================
+   SECURITY EVENT ANALYSIS
+========================================================= */
+
+.event-analysis-panel {
+    margin-bottom: 22px;
+}
+
+.event-input-wrapper {
+    position: relative;
+}
+
+#securityEventInput {
+    width: 100%;
+
+    min-height: 150px;
+
+    resize: vertical;
+
+    padding: 15px;
+
+    border-radius: 12px;
+
+    border: 1px solid rgba(128,128,128,.2);
+
+    outline: none;
+
+    background: transparent;
+
+    color: inherit;
+
+    font-family:
+        "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+
+    font-size: 12px;
+
+    line-height: 1.6;
+}
+
+#securityEventInput:focus {
+    border-color: #8b5cf6;
+
+    box-shadow:
+        0 0 0 3px rgba(139,92,246,.10);
+}
+
+.event-input-hint {
+    margin-top: 7px;
+
+    font-size: 10px;
+
+    opacity: .45;
+}
+
+.event-actions {
+    display: flex;
+
+    justify-content: flex-end;
+
+    margin-top: 14px;
+}
+
+
+/* =========================================================
+   DARK MODE
+========================================================= */
+
+body.dark-mode .upload-zone {
+    background:
+        linear-gradient(
+            135deg,
+            rgba(139,92,246,.06),
+            rgba(236,72,153,.04)
+        );
+}
+
+body.dark-mode #securityEventInput {
+    background: rgba(15,23,42,.35);
+}
+
+body.dark-mode .analyze-panel {
+    border-color: rgba(255,255,255,.06);
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1000px) {
+
+    .result-summary {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .analysis-info {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+}
+
+
+@media (max-width: 700px) {
+
+    .analyze-header {
+        flex-direction: column;
+
+        align-items: flex-start;
+    }
+
+    .analyze-title {
+        font-size: 25px;
+    }
+
+    .analyze-panel {
+        padding: 17px;
+    }
+
+    .result-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .analysis-info {
+        grid-template-columns: 1fr;
+    }
+
+    .analyze-actions,
+    .event-actions {
+        justify-content: stretch;
+    }
+
+    .analyze-btn {
+        width: 100%;
+    }
+}
+
+</style>
+
+{% endblock %}
+
+
+{% block content %}
+
+<div class="analyze-page">
+
+    <!-- =====================================================
+         PAGE HEADER
+    ====================================================== -->
+
+    <div class="analyze-header">
+
+        <div>
+
+            <h1 class="analyze-title">
+                <i class="fas fa-shield-virus"></i>
+                Analyze Logs
+            </h1>
+
+            <p class="analyze-subtitle">
+                Upload security logs and run autonomous threat detection.
+            </p>
+
+        </div>
+
+        <div class="analyze-status">
+            <span class="analyze-status-dot"></span>
+            Detection Engine Active
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         SECURITY EVENT ANALYSIS
+    ====================================================== -->
+
+    <div class="analyze-panel event-analysis-panel">
+
+        <div class="analyze-panel-header">
+
+            <div>
+
+                <h2 class="analyze-panel-title">
+                    Security Event Analysis
+                </h2>
+
+                <p class="analyze-panel-description">
+                    Analyze a single security event using the autonomous
+                    threat detection engine.
+                </p>
+
+            </div>
+
+            <div class="analyze-panel-icon">
+                <i class="fas fa-magnifying-glass-chart"></i>
+            </div>
+
+        </div>
+
+
+        <div class="event-input-wrapper">
+
+            <textarea
+                id="securityEventInput"
+                placeholder="Paste a security event or log message here...
+
+Example:
+Failed SSH login from 192.168.1.100 for user admin
+Multiple authentication failures detected from 10.0.0.25
+Possible SQL injection attempt detected in HTTP request"
+            ></textarea>
+
+            <div class="event-input-hint">
+                Enter a security event or log message for threat analysis.
+            </div>
+
+        </div>
+
+
+        <div class="event-actions">
+
+            <button
+                type="button"
+                id="analyzeEventBtn"
+                class="analyze-btn"
+            >
+
+                <span class="btn-text">
+                    <i class="fas fa-brain"></i>
+                    Analyze Security Event
+                </span>
+
+                <span class="spinner"></span>
+
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         LOG FILE UPLOAD
+    ====================================================== -->
+
+    <div class="analyze-panel">
+
+        <div class="analyze-panel-header">
+
+            <div>
+
+                <h2 class="analyze-panel-title">
+                    Analyze Log File
+                </h2>
+
+                <p class="analyze-panel-description">
+                    Upload a log file and let the autonomous detection engine
+                    identify suspicious activity and threats.
+                </p>
+
+            </div>
+
+            <div class="analyze-panel-icon">
+                <i class="fas fa-file-shield"></i>
+            </div>
+
+        </div>
+
+
+        <!-- Upload Zone -->
+
+        <form
+            id="uploadForm"
+            action="{{ url_for('upload') }}"
+            method="POST"
+            enctype="multipart/form-data"
+        >
+
+            <div
+                class="upload-zone"
+                id="uploadZone"
+            >
+
+                <input
+                    type="file"
+                    id="logFileInput"
+                    name="file"
+                    accept=".log,.txt,.csv,.json"
+                >
+
+                <div class="upload-zone-content">
+
+                    <div class="upload-icon">
+                        <i class="fas fa-cloud-arrow-up"></i>
+                    </div>
+
+                    <h3>
+                        Drop your log file here
+                    </h3>
+
+                    <p>
+                        or click to browse from your computer
+                    </p>
+
+                    <small>
+                        Supported formats: .LOG, .TXT, .CSV, .JSON
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <!-- Selected File -->
+
+            <div
+                class="selected-file"
+                id="selectedFile"
+            >
+
+                <div class="selected-file-info">
+
+                    <div class="selected-file-icon">
+                        <i class="fas fa-file-lines"></i>
+                    </div>
+
+                    <div>
+
+                        <div
+                            class="selected-file-name"
+                            id="fileName"
+                        >
+                            No file selected
+                        </div>
+
+                        <div
+                            class="selected-file-size"
+                            id="fileSize"
+                        >
+                            -
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="remove-file-btn"
+                    id="removeFileBtn"
+                    title="Remove file"
+                >
+                    <i class="fas fa-xmark"></i>
+                </button>
+
+            </div>
+
+
+            <!-- Message -->
+
+            <div
+                class="analyze-message"
+                id="uploadMessage"
+            >
+                <i class="message-icon fas fa-circle-info"></i>
+
+                <span id="uploadMessageText"></span>
+            </div>
+
+
+            <!-- Action -->
+
+            <div class="analyze-actions">
+
+                <button
+                    type="submit"
+                    id="analyzeFileBtn"
+                    class="analyze-btn"
+                    disabled
+                >
+
+                    <span class="btn-text">
+                        <i class="fas fa-brain"></i>
+                        Run Threat Analysis
+                    </span>
+
+                    <span class="spinner"></span>
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+
+    <!-- =====================================================
+         ANALYSIS RESULTS
+    ====================================================== -->
+
+    <section
+        class="results-section"
+        id="analysisResults"
+    >
+
+        <div class="results-header">
+
+            <div>
+
+                <h2 class="results-title">
+                    <i class="fas fa-radar"></i>
+                    Detected Threats
+                </h2>
+
+            </div>
+
+            <span
+                class="results-count"
+                id="resultsCount"
+            >
+                0 Threats
+            </span>
+
+        </div>
+
+
+        <!-- Result Summary -->
+
+        <div class="result-summary">
+
+            <div class="result-summary-card">
+
+                <span>
+                    Total Threats
+                </span>
+
+                <strong id="resultTotalThreats">
+                    0
+                </strong>
+
+            </div>
+
+
+            <div class="result-summary-card">
+
+                <span>
+                    Critical
+                </span>
+
+                <strong id="resultCritical">
+                    0
+                </strong>
+
+            </div>
+
+
+            <div class="result-summary-card">
+
+                <span>
+                    High
+                </span>
+
+                <strong id="resultHigh">
+                    0
+                </strong>
+
+            </div>
+
+
+            <div class="result-summary-card">
+
+                <span>
+                    Average Confidence
+                </span>
+
+                <strong id="resultConfidence">
+                    0%
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <!-- Threat Table -->
+
+        <div class="analyze-panel">
+
+            <div class="results-table-wrapper">
+
+                <table class="results-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Severity
+                            </th>
+
+                            <th>
+                                Threat
+                            </th>
+
+                            <th>
+                                Type
+                            </th>
+
+                            <th>
+                                Source IP
+                            </th>
+
+                            <th>
+                                Destination IP
+                            </th>
+
+                            <th>
+                                Confidence
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                            <th>
+                                Detected By
+                            </th>
+
+                            <th>
+                                Detected At
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="resultsTableBody">
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <!-- Empty -->
+
+            <div
+                class="results-empty"
+                id="resultsEmpty"
+            >
+
+                <i class="fas fa-shield-check"></i>
+
+                <strong>
+                    No Threats Detected
+                </strong>
+
+                <span>
+                    The uploaded log was analyzed successfully and
+                    no known threat was identified.
+                </span>
+
+            </div>
+
+
+            <!-- Analysis Information -->
+
+            <div class="analysis-info">
+
+                <div class="analysis-info-item">
+
+                    <span>
+                        Source File
+                    </span>
+
+                    <strong id="analysisSource">
+                        -
+                    </strong>
+
+                </div>
+
+
+                <div class="analysis-info-item">
+
+                    <span>
+                        Records Analyzed
+                    </span>
+
+                    <strong id="analysisRecords">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="analysis-info-item">
+
+                    <span>
+                        Analysis Time
+                    </span>
+
+                    <strong id="analysisTime">
+                        -
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script>
+
+"use strict";
+
+
+/* =========================================================
+   ELEMENTS
+========================================================= */
+
+const uploadForm =
+    document.getElementById("uploadForm");
+
+const uploadZone =
+    document.getElementById("uploadZone");
+
+const logFileInput =
+    document.getElementById("logFileInput");
+
+const selectedFile =
+    document.getElementById("selectedFile");
+
+const fileName =
+    document.getElementById("fileName");
+
+const fileSize =
+    document.getElementById("fileSize");
+
+const removeFileBtn =
+    document.getElementById("removeFileBtn");
+
+const analyzeFileBtn =
+    document.getElementById("analyzeFileBtn");
+
+const uploadMessage =
+    document.getElementById("uploadMessage");
+
+const uploadMessageText =
+    document.getElementById("uploadMessageText");
+
+const securityEventInput =
+    document.getElementById("securityEventInput");
+
+const analyzeEventBtn =
+    document.getElementById("analyzeEventBtn");
+
+const analysisResults =
+    document.getElementById("analysisResults");
+
+const resultsCount =
+    document.getElementById("resultsCount");
+
+const resultsTableBody =
+    document.getElementById("resultsTableBody");
+
+const resultsEmpty =
+    document.getElementById("resultsEmpty");
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function escapeHtml(value) {
+
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+function safeNumber(value, fallback = 0) {
+
+    const number = Number(value);
+
+    return Number.isFinite(number)
+        ? number
+        : fallback;
+}
+
+
+function normalizeConfidence(value) {
+
+    let number = safeNumber(value, 0);
+
+    if (number <= 1) {
+        number *= 100;
+    }
+
+    if (number > 100) {
+        number /= 100;
+    }
+
+    return Math.max(
+        0,
+        Math.min(100, number)
+    );
+}
+
+
+function normalizeSeverity(value) {
+
+    const severity =
+        String(value ?? "LOW")
+            .trim()
+            .toUpperCase();
+
+    if (severity === "CRITICAL") {
+        return "CRITICAL";
+    }
+
+    if (severity === "HIGH") {
+        return "HIGH";
+    }
+
+    if (severity === "MEDIUM") {
+        return "MEDIUM";
+    }
+
+    if (severity === "LOW") {
+        return "LOW";
+    }
+
+    return "INFO";
+}
+
+
+function normalizeStatus(value) {
+
+    const status =
+        String(value ?? "OPEN")
+            .trim()
+            .toUpperCase();
+
+    return status || "OPEN";
+}
+
+
+function formatDate(value) {
+
+    if (!value) {
+        return "-";
+    }
+
+    try {
+
+        const date =
+            new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return String(value);
+        }
+
+        return date.toLocaleString();
+
+    } catch (error) {
+
+        return String(value);
+    }
+}
+
+
+function formatFileSize(bytes) {
+
+    bytes =
+        safeNumber(bytes, 0);
+
+    if (bytes < 1024) {
+        return `${bytes} B`;
+    }
+
+    if (bytes < 1024 * 1024) {
+        return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+
+    if (bytes < 1024 * 1024 * 1024) {
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    return `${(
+        bytes /
+        (1024 * 1024 * 1024)
+    ).toFixed(1)} GB`;
+}
+
+
+function getFirstValue(object, keys, fallback = "") {
+
+    if (!object || typeof object !== "object") {
+        return fallback;
+    }
+
+    for (const key of keys) {
+
+        if (
+            object[key] !== undefined &&
+            object[key] !== null &&
+            object[key] !== ""
+        ) {
+
+            return object[key];
+        }
+    }
+
+    return fallback;
+}
+
+
+/* =========================================================
+   MESSAGE
+========================================================= */
+
+function showMessage(
+    message,
+    type = "success"
+) {
+
+    if (!uploadMessage) {
+        return;
+    }
+
+    uploadMessage.className =
+        `analyze-message visible ${type}`;
+
+    uploadMessageText.textContent =
+        message;
+}
+
+
+function hideMessage() {
+
+    if (!uploadMessage) {
+        return;
+    }
+
+    uploadMessage.className =
+        "analyze-message";
+
+    uploadMessageText.textContent =
+        "";
+}
+
+
+/* =========================================================
+   FILE SELECTION
+========================================================= */
+
+function handleFile(file) {
+
+    if (!file) {
+        return;
+    }
+
+    const allowedExtensions = [
+        ".log",
+        ".txt",
+        ".csv",
+        ".json"
+    ];
+
+    const lowerName =
+        file.name.toLowerCase();
+
+    const valid =
+        allowedExtensions.some(
+            extension =>
+                lowerName.endsWith(extension)
+        );
+
+    if (!valid) {
+
+        showMessage(
+            "Unsupported file type. Please upload a .log, .txt, .csv, or .json file.",
+            "error"
+        );
+
+        resetFile();
+
+        return;
+    }
+
+    fileName.textContent =
+        file.name;
+
+    fileSize.textContent =
+        formatFileSize(file.size);
+
+    selectedFile.classList.add(
+        "visible"
+    );
+
+    analyzeFileBtn.disabled =
+        false;
+
+    hideMessage();
+}
+
+
+function resetFile() {
+
+    logFileInput.value =
+        "";
+
+    selectedFile.classList.remove(
+        "visible"
+    );
+
+    fileName.textContent =
+        "No file selected";
+
+    fileSize.textContent =
+        "-";
+
+    analyzeFileBtn.disabled =
+        true;
+}
+
+
+/* =========================================================
+   UPLOAD ZONE
+========================================================= */
+
+uploadZone.addEventListener(
+    "click",
+    function(event) {
+
+        if (
+            event.target.closest(
+                "#removeFileBtn"
+            )
+        ) {
+            return;
+        }
+
+        logFileInput.click();
+    }
+);
+
+
+logFileInput.addEventListener(
+    "change",
+    function() {
+
+        if (
+            this.files &&
+            this.files.length
+        ) {
+
+            handleFile(
+                this.files[0]
+            );
+        }
+    }
+);
+
+
+[
+    "dragenter",
+    "dragover"
+].forEach(eventName => {
+
+    uploadZone.addEventListener(
+        eventName,
+        function(event) {
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            uploadZone.classList.add(
+                "dragover"
+            );
+        }
+    );
+
+});
+
+
+[
+    "dragleave",
+    "drop"
+].forEach(eventName => {
+
+    uploadZone.addEventListener(
+        eventName,
+        function(event) {
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            uploadZone.classList.remove(
+                "dragover"
+            );
+        }
+    );
+
+});
+
+
+uploadZone.addEventListener(
+    "drop",
+    function(event) {
+
+        const files =
+            event.dataTransfer.files;
+
+        if (
+            files &&
+            files.length
+        ) {
+
+            handleFile(
+                files[0]
+            );
+
+            try {
+
+                const dataTransfer =
+                    new DataTransfer();
+
+                dataTransfer.items.add(
+                    files[0]
+                );
+
+                logFileInput.files =
+                    dataTransfer.files;
+
+            } catch (error) {
+
+                console.warn(
+                    "Unable to assign dropped file:",
+                    error
+                );
+            }
+        }
+    }
+);
+
+
+removeFileBtn.addEventListener(
+    "click",
+    function(event) {
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        resetFile();
+        hideMessage();
+    }
+);
+
+
+/* =========================================================
+   NORMALIZE API RESPONSE
+========================================================= */
+
+function extractThreats(payload) {
+
+    if (!payload) {
+        return [];
+    }
+
+    if (Array.isArray(payload)) {
+        return payload;
+    }
+
+    if (
+        payload.data &&
+        Array.isArray(payload.data.threats)
+    ) {
+        return payload.data.threats;
+    }
+
+    if (
+        payload.data &&
+        Array.isArray(payload.data.findings)
+    ) {
+        return payload.data.findings;
+    }
+
+    if (
+        Array.isArray(payload.threats)
+    ) {
+        return payload.threats;
+    }
+
+    if (
+        Array.isArray(payload.findings)
+    ) {
+        return payload.findings;
+    }
+
+    if (
+        Array.isArray(payload.detections)
+    ) {
+        return payload.detections;
+    }
+
+    if (
+        Array.isArray(payload.results)
+    ) {
+        return payload.results;
+    }
+
+    return [];
+}
+
+
+function getResponseData(payload) {
+
+    if (
+        payload &&
+        payload.data &&
+        typeof payload.data === "object"
+    ) {
+        return payload.data;
+    }
+
+    return payload || {};
+}
+
+
+/* =========================================================
+   THREAT ROW
+========================================================= */
+
+function renderThreatRow(threat) {
+
+    const severity =
+        normalizeSeverity(
+            getFirstValue(
+                threat,
+                [
+                    "severity",
+                    "risk",
+                    "level"
+                ],
+                "LOW"
+            )
+        );
+
+    const severityClass =
+        severity.toLowerCase();
+
+    const title =
+        getFirstValue(
+            threat,
+            [
+                "title",
+                "threat_title",
+                "name"
+            ],
+            "Unknown Threat"
+        );
+
+    const threatType =
+        getFirstValue(
+            threat,
+            [
+                "threat_type",
+                "threatType",
+                "type",
+                "classification"
+            ],
+            "Unknown"
+        );
+
+    const sourceIp =
+        getFirstValue(
+            threat,
+            [
+                "source_ip",
+                "sourceIp",
+                "src_ip",
+                "srcIp"
+            ],
+            "-"
+        );
+
+    const destinationIp =
+        getFirstValue(
+            threat,
+            [
+                "destination_ip",
+                "destinationIp",
+                "dest_ip",
+                "destIp",
+                "dst_ip",
+                "dstIp"
+            ],
+            "-"
+        );
+
+    const confidence =
+        normalizeConfidence(
+            getFirstValue(
+                threat,
+                [
+                    "confidence",
+                    "confidence_score",
+                    "confidenceScore",
+                    "score"
+                ],
+                0
+            )
+        );
+
+    const status =
+        normalizeStatus(
+            getFirstValue(
+                threat,
+                [
+                    "status",
+                    "state"
+                ],
+                "OPEN"
+            )
+        );
+
+    const detectedBy =
+        getFirstValue(
+            threat,
+            [
+                "detection_source",
+                "detectionSource",
+                "detected_by",
+                "detectedBy",
+                "source"
+            ],
+            "Autonomous Detection Engine"
+        );
+
+    const detectedAt =
+        getFirstValue(
+            threat,
+            [
+                "created_at",
+                "createdAt",
+                "detected_at",
+                "detectedAt",
+                "analyzed_at",
+                "analyzedAt"
+            ],
+            ""
+        );
+
+    let confidenceClass =
+        "confidence-low";
+
+    if (confidence >= 80) {
+        confidenceClass =
+            "confidence-high";
+    } else if (confidence >= 50) {
+        confidenceClass =
+            "confidence-medium";
+    }
+
+    return `
+        <tr>
+
+            <td>
+                <span class="threat-badge ${escapeHtml(severityClass)}">
+                    ${escapeHtml(severity)}
+                </span>
+            </td>
+
+            <td>
+                <span class="threat-type">
+                    ${escapeHtml(title)}
+                </span>
+
+                <span class="threat-title">
+                    ${escapeHtml(
+                        getFirstValue(
+                            threat,
+                            [
+                                "description",
+                                "summary",
+                                "reason"
+                            ],
+                            ""
+                        )
+                    )}
+                </span>
+            </td>
+
+            <td>
+                ${escapeHtml(threatType)}
+            </td>
+
+            <td>
+                <code class="ip-address">
+                    ${escapeHtml(sourceIp)}
+                </code>
+            </td>
+
+            <td>
+                <code class="ip-address">
+                    ${escapeHtml(destinationIp)}
+                </code>
+            </td>
+
+            <td>
+                <span class="confidence-value ${confidenceClass}">
+                    ${confidence.toFixed(0)}%
+                </span>
+            </td>
+
+            <td>
+                <span class="threat-badge info">
+                    ${escapeHtml(status)}
+                </span>
+            </td>
+
+            <td>
+                ${escapeHtml(detectedBy)}
+            </td>
+
+            <td>
+                ${escapeHtml(
+                    formatDate(detectedAt)
+                )}
+            </td>
+
+        </tr>
+    `;
+}
+
+
+/* =========================================================
+   RENDER RESULTS
+========================================================= */
+
+function renderResults(
+    payload,
+    sourceFile = ""
+) {
+
+    const data =
+        getResponseData(payload);
+
+    const threats =
+        extractThreats(payload);
+
+    analysisResults.classList.add(
+        "visible"
+    );
+
+    resultsTableBody.innerHTML =
+        "";
+
+    const totalThreats =
+        threats.length;
+
+    const critical =
+        threats.filter(
+            threat =>
+                normalizeSeverity(
+                    getFirstValue(
+                        threat,
+                        [
+                            "severity",
+                            "risk",
+                            "level"
+                        ],
+                        "LOW"
+                    )
+                ) === "CRITICAL"
+        ).length;
+
+    const high =
+        threats.filter(
+            threat =>
+                normalizeSeverity(
+                    getFirstValue(
+                        threat,
+                        [
+                            "severity",
+                            "risk",
+                            "level"
+                        ],
+                        "LOW"
+                    )
+                ) === "HIGH"
+        ).length;
+
+    let confidenceTotal = 0;
+
+    threats.forEach(
+        threat => {
+
+            confidenceTotal +=
+                normalizeConfidence(
+                    getFirstValue(
+                        threat,
+                        [
+                            "confidence",
+                            "confidence_score",
+                            "confidenceScore",
+                            "score"
+                        ],
+                        0
+                    )
+                );
+        }
+    );
+
+    const averageConfidence =
+        totalThreats > 0
+            ? confidenceTotal / totalThreats
+            : 0;
+
+
+    /* Summary */
+
+    document.getElementById(
+        "resultTotalThreats"
+    ).textContent =
+        safeNumber(
+            getFirstValue(
+                data,
+                [
+                    "threat_count",
+                    "threatCount",
+                    "total_threats",
+                    "totalThreats"
+                ],
+                totalThreats
+            ),
+            totalThreats
+        );
+
+
+    document.getElementById(
+        "resultCritical"
+    ).textContent =
+        critical;
+
+
+    document.getElementById(
+        "resultHigh"
+    ).textContent =
+        high;
+
+
+    document.getElementById(
+        "resultConfidence"
+    ).textContent =
+        `${averageConfidence.toFixed(0)}%`;
+
+
+    resultsCount.textContent =
+        `${totalThreats} ${
+            totalThreats === 1
+                ? "Threat"
+                : "Threats"
+        }`;
+
+
+    /* Table */
+
+    if (threats.length > 0) {
+
+        resultsTableBody.innerHTML =
+            threats
+                .map(renderThreatRow)
+                .join("");
+
+        resultsEmpty.classList.remove(
+            "visible"
+        );
+
+    } else {
+
+        resultsEmpty.classList.add(
+            "visible"
+        );
+    }
+
+
+    /* Analysis information */
+
+    document.getElementById(
+        "analysisSource"
+    ).textContent =
+        sourceFile ||
+        getFirstValue(
+            data,
+            [
+                "source_name",
+                "sourceName",
+                "filename",
+                "file_name",
+                "fileName"
+            ],
+            "-"
+        );
+
+
+    document.getElementById(
+        "analysisRecords"
+    ).textContent =
+        safeNumber(
+            getFirstValue(
+                data,
+                [
+                    "records_analyzed",
+                    "recordsAnalyzed",
+                    "analyzed_records",
+                    "total_records",
+                    "totalRecords"
+                ],
+                0
+            ),
+            0
+        );
+
+
+    document.getElementById(
+        "analysisTime"
+    ).textContent =
+        formatDate(
+            getFirstValue(
+                data,
+                [
+                    "analyzed_at",
+                    "analyzedAt",
+                    "analysis_time",
+                    "analysisTime"
+                ],
+                new Date().toISOString()
+            )
+        );
+
+
+    /* Scroll to results */
+
+    setTimeout(
+        function() {
+
+            analysisResults.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+
+        },
+        100
+    );
+}
+
+
+/* =========================================================
+   SECURITY EVENT ANALYSIS
+========================================================= */
+
+analyzeEventBtn.addEventListener(
+    "click",
+    async function() {
+
+        const eventText =
+            securityEventInput.value.trim();
+
+        if (!eventText) {
+
+            alert(
+                "Please enter a security event or log message."
+            );
+
+            securityEventInput.focus();
+
+            return;
+        }
+
+
+        analyzeEventBtn.disabled =
+            true;
+
+        analyzeEventBtn.classList.add(
+            "loading"
+        );
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "{{ url_for('api_analyze_event') }}",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json",
+
+                            "Accept":
+                                "application/json"
+                        },
+
+                        body: JSON.stringify({
+                            event: eventText
+                        })
+                    }
+                );
+
+
+            const result =
+                await response.json();
+
+
+            if (!response.ok || result.success === false) {
+
+                throw new Error(
+                    result.message ||
+                    result.error ||
+                    "Security event analysis failed."
+                );
+            }
+
+
+            renderResults(
+                result,
+                "Manual Security Event"
+            );
+
+
+            /* Clear event after successful analysis */
+
+            securityEventInput.value =
+                "";
+
+
+        } catch (error) {
+
+            console.error(
+                "Security event analysis error:",
+                error
+            );
+
+            alert(
+                error.message ||
+                "Unable to analyze the security event."
+            );
+
+        } finally {
+
+            analyzeEventBtn.disabled =
+                false;
+
+            analyzeEventBtn.classList.remove(
+                "loading"
+            );
+        }
+    }
+);
+
+
+/* =========================================================
+   FILE UPLOAD
+========================================================= */
+
+uploadForm.addEventListener(
+    "submit",
+    async function(event) {
+
+        event.preventDefault();
+
+
+        if (
+            !logFileInput.files ||
+            !logFileInput.files.length
+        ) {
+
+            showMessage(
+                "Please select a log file before running threat analysis.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        analyzeFileBtn.disabled =
+            true;
+
+        analyzeFileBtn.classList.add(
+            "loading"
+        );
+
+        hideMessage();
+
+
+        const formData =
+            new FormData(
+                uploadForm
+            );
+
+
+        try {
+
+            const response =
+                await fetch(
+                    uploadForm.action,
+                    {
+                        method: "POST",
+
+                        body: formData,
+
+                        headers: {
+                            "Accept":
+                                "application/json"
+                        }
+                    }
+                );
+
+
+            const contentType =
+                response.headers.get(
+                    "content-type"
+                ) || "";
+
+
+            let result;
+
+
+            if (
+                contentType.includes(
+                    "application/json"
+                )
+            ) {
+
+                result =
+                    await response.json();
+
+            } else {
+
+                /*
+                 * Some Flask upload implementations
+                 * return an HTML page after processing.
+                 *
+                 * In that case, reload the page so the
+                 * normal server-side upload result can
+                 * be displayed.
+                 */
+
+                if (response.ok) {
+
+                    showMessage(
+                        "Log file analyzed successfully.",
+                        "success"
+                    );
+
+                    setTimeout(
+                        function() {
+                            window.location.reload();
+                        },
+                        700
+                    );
+
+                    return;
+                }
+
+                throw new Error(
+                    "The server returned an unexpected response."
+                );
+            }
+
+
+            if (
+                !response.ok ||
+                result.success === false
+            ) {
+
+                throw new Error(
+                    result.message ||
+                    result.error ||
+                    "Log file analysis failed."
+                );
+            }
+
+
+            const sourceName =
+                getFirstValue(
+                    getResponseData(result),
+                    [
+                        "source_name",
+                        "sourceName",
+                        "filename",
+                        "file_name",
+                        "fileName"
+                    ],
+                    logFileInput.files[0].name
+                );
+
+
+            renderResults(
+                result,
+                sourceName
+            );
+
+
+            showMessage(
+                result.message ||
+                "Log file analyzed successfully.",
+                "success"
+            );
+
+
+        } catch (error) {
+
+            console.error(
+                "Log upload error:",
+                error
+            );
+
+            showMessage(
+                error.message ||
+                "Unable to analyze the uploaded log file.",
+                "error"
+            );
+
+        } finally {
+
+            analyzeFileBtn.disabled =
+                !logFileInput.files ||
+                !logFileInput.files.length;
+
+            analyzeFileBtn.classList.remove(
+                "loading"
+            );
+        }
+    }
+);
+
+
+/* =========================================================
+   INITIAL STATE
+========================================================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
+
+        resetFile();
+
+    }
+);
+
+</script>
+
+{% endblock %}

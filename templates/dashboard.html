@@ -1,0 +1,2161 @@
+{% extends "base.html" %}
+
+{% block title %}
+Autonomous Threat Hunting System
+{% endblock %}
+
+
+{% block head %}
+
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/dashboard.css') }}"
+>
+
+<style id="aths-dashboard-visual-overrides">
+/* ============================================================
+   ATHS DASHBOARD — VISUAL OVERRIDES
+   Deep SOC theme, high contrast, restrained cyan/blue accents,
+   severity colors reserved for security meaning.
+   ============================================================ */
+
+:root {
+    --aths-bg: #07111f;
+    --aths-bg-2: #0b1728;
+    --aths-panel: rgba(14, 27, 45, .92);
+    --aths-panel-2: rgba(17, 34, 55, .94);
+    --aths-border: rgba(120, 170, 220, .16);
+    --aths-border-strong: rgba(86, 180, 255, .32);
+    --aths-text: #edf6ff;
+    --aths-muted: #9fb3c8;
+    --aths-cyan: #36c5ff;
+    --aths-blue: #4e8cff;
+    --aths-green: #35d49a;
+    --aths-yellow: #f4c95d;
+    --aths-orange: #ff9f43;
+    --aths-red: #ff5d6c;
+    --aths-shadow: 0 16px 45px rgba(0, 0, 0, .28);
+}
+
+.cyber-dashboard {
+    color: var(--aths-text);
+    background:
+        radial-gradient(circle at 12% 0%, rgba(54,197,255,.08), transparent 28rem),
+        radial-gradient(circle at 92% 12%, rgba(78,140,255,.07), transparent 26rem);
+    min-height: 100%;
+}
+
+.cyber-header {
+    padding: 24px 26px;
+    margin-bottom: 22px;
+    border: 1px solid var(--aths-border);
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(14,31,51,.98), rgba(8,19,33,.96));
+    box-shadow: var(--aths-shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.cyber-header::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--aths-cyan), var(--aths-blue), transparent);
+    opacity: .75;
+}
+
+.cyber-title {
+    letter-spacing: .06em;
+    line-height: 1.2;
+    text-shadow: 0 0 24px rgba(54,197,255,.12);
+}
+
+.cyber-subtitle,
+.authorize-description,
+.security-card-description,
+.ti-subtitle,
+.ti-panel-heading p {
+    color: var(--aths-muted) !important;
+}
+
+.cyber-panel,
+.ti-panel {
+    background: linear-gradient(145deg, var(--aths-panel-2), var(--aths-panel));
+    border: 1px solid var(--aths-border);
+    border-radius: 16px;
+    box-shadow: 0 10px 35px rgba(0,0,0,.20);
+    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.cyber-panel:hover,
+.ti-panel:hover {
+    border-color: var(--aths-border-strong);
+    box-shadow: 0 14px 42px rgba(0,0,0,.28);
+}
+
+.stat-card {
+    position: relative;
+    overflow: hidden;
+    padding: 20px;
+}
+
+.stat-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--aths-cyan), transparent);
+    opacity: .8;
+}
+
+.stat-card h3 {
+    color: #fff;
+    font-size: 2rem;
+    margin: 14px 0 4px;
+}
+
+.stat-card p {
+    color: var(--aths-muted);
+    font-weight: 600;
+}
+
+.stat-card-icon,
+.security-card-icon {
+    box-shadow: 0 8px 24px rgba(0,0,0,.22);
+}
+
+.icon-purple {
+    color: #b994ff !important;
+    background: rgba(157,110,255,.12) !important;
+    border-color: rgba(157,110,255,.24) !important;
+}
+.icon-orange {
+    color: var(--aths-orange) !important;
+    background: rgba(255,159,67,.11) !important;
+    border-color: rgba(255,159,67,.24) !important;
+}
+.icon-red {
+    color: var(--aths-red) !important;
+    background: rgba(255,93,108,.11) !important;
+    border-color: rgba(255,93,108,.24) !important;
+}
+
+.security-card {
+    padding: 18px;
+    min-height: 145px;
+    cursor: pointer;
+}
+.security-card:focus-visible,
+.stat-card:focus-visible {
+    outline: 2px solid var(--aths-cyan);
+    outline-offset: 3px;
+}
+.security-card-title {
+    color: #f5f9ff;
+    font-weight: 750;
+}
+.security-card-count {
+    color: #fff !important;
+    background: rgba(255,255,255,.07) !important;
+    border: 1px solid var(--aths-border) !important;
+}
+
+.panel-title,
+.ti-panel-title {
+    color: #f1f7ff !important;
+    letter-spacing: .04em;
+}
+.panel-title i,
+.ti-panel-title i {
+    color: var(--aths-cyan);
+}
+
+.chart-container,
+.live-chart-wrap {
+    min-height: 280px;
+}
+
+.threat-intelligence {
+    margin-top: 24px;
+    border: 1px solid rgba(54,197,255,.18);
+    border-radius: 18px;
+    padding: 18px;
+    background:
+        linear-gradient(180deg, rgba(8,22,37,.97), rgba(7,16,28,.98));
+    box-shadow: var(--aths-shadow);
+}
+
+.ti-header {
+    padding: 8px 4px 20px;
+    border-bottom: 1px solid var(--aths-border);
+    margin-bottom: 18px;
+}
+
+.live-indicator,
+.live-chart-status {
+    color: #b8d3e9;
+    font-weight: 700;
+}
+
+.live-dot {
+    box-shadow: 0 0 0 4px rgba(53,212,154,.10), 0 0 14px rgba(53,212,154,.55);
+}
+
+.overview-card,
+.metric-card {
+    border: 1px solid var(--aths-border) !important;
+    background: rgba(255,255,255,.025) !important;
+}
+
+.overview-card strong,
+.metric-card strong {
+    color: #fff !important;
+}
+
+.overview-card.critical { border-left-color: var(--aths-red) !important; }
+.overview-card.high { border-left-color: var(--aths-orange) !important; }
+.overview-card.medium { border-left-color: var(--aths-yellow) !important; }
+.overview-card.low { border-left-color: var(--aths-green) !important; }
+
+.risk-badge.high,
+.severity-badge.critical {
+    background: rgba(255,93,108,.14) !important;
+    color: #ff9aa5 !important;
+    border: 1px solid rgba(255,93,108,.28);
+}
+.severity-badge.high {
+    background: rgba(255,159,67,.14) !important;
+    color: #ffc078 !important;
+    border: 1px solid rgba(255,159,67,.28);
+}
+.severity-badge.medium {
+    background: rgba(244,201,93,.13) !important;
+    color: #ffe08a !important;
+    border: 1px solid rgba(244,201,93,.27);
+}
+.severity-badge.low {
+    background: rgba(53,212,154,.13) !important;
+    color: #73e9bc !important;
+    border: 1px solid rgba(53,212,154,.27);
+}
+
+.ti-table-wrap,
+.authorized-users-wrapper,
+.details-table-wrapper {
+    border: 1px solid var(--aths-border);
+    border-radius: 12px;
+    overflow: auto;
+}
+
+.ti-table,
+.authorized-users-table,
+.details-table {
+    color: var(--aths-text);
+}
+
+.ti-table th,
+.authorized-users-table th,
+.details-table th {
+    background: rgba(54,197,255,.055);
+    color: #9ec5df;
+    font-size: .74rem;
+    letter-spacing: .08em;
+    white-space: nowrap;
+}
+
+.ti-table td,
+.authorized-users-table td,
+.details-table td {
+    border-color: var(--aths-border) !important;
+    color: #d9e7f4;
+}
+
+.ti-table tbody tr:hover,
+.authorized-users-table tbody tr:hover,
+.details-table tbody tr:hover {
+    background: rgba(54,197,255,.045);
+}
+
+code {
+    color: #9bdcff !important;
+    background: rgba(54,197,255,.06);
+    padding: 3px 7px;
+    border-radius: 6px;
+}
+
+.severity-track {
+    background: rgba(255,255,255,.07) !important;
+}
+.severity-fill.low { background: var(--aths-green) !important; }
+.severity-fill.medium { background: var(--aths-yellow) !important; }
+.severity-fill.high { background: var(--aths-orange) !important; }
+.severity-fill.critical { background: var(--aths-red) !important; }
+
+.confidence-ring-large {
+    filter: drop-shadow(0 0 18px rgba(54,197,255,.10));
+}
+
+.authorize-panel,
+.authorized-users-panel {
+    margin-top: 24px;
+}
+
+.authorize-input-wrapper input {
+    background: rgba(4,13,24,.82) !important;
+    color: #fff !important;
+    border: 1px solid var(--aths-border) !important;
+}
+.authorize-input-wrapper input::placeholder {
+    color: #71879b !important;
+}
+.authorize-input-wrapper input:focus {
+    border-color: var(--aths-cyan) !important;
+    box-shadow: 0 0 0 3px rgba(54,197,255,.10) !important;
+}
+
+.authorize-btn {
+    background: linear-gradient(135deg, #168dcc, #3b72d9) !important;
+    border: 0 !important;
+    box-shadow: 0 8px 22px rgba(30,130,210,.24);
+}
+.authorize-btn:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+}
+
+.admin-access-badge,
+.user-badge,
+.authorized-count {
+    border: 1px solid rgba(54,197,255,.24) !important;
+    background: rgba(54,197,255,.07) !important;
+    color: #9bdcff !important;
+}
+
+.modal-content {
+    background: #0b1829 !important;
+    color: var(--aths-text);
+    border: 1px solid var(--aths-border-strong) !important;
+    box-shadow: 0 24px 70px rgba(0,0,0,.55);
+}
+.modal-header,
+.modal-footer {
+    border-color: var(--aths-border) !important;
+}
+.modal-title {
+    color: #fff !important;
+}
+.btn-close {
+    filter: invert(1) grayscale(1);
+}
+.detail-stat {
+    background: rgba(255,255,255,.035) !important;
+    border: 1px solid var(--aths-border) !important;
+}
+.detail-stat strong {
+    color: #fff !important;
+}
+.details-empty,
+.ti-empty,
+.empty-table {
+    color: var(--aths-muted) !important;
+}
+
+@media (max-width: 900px) {
+    .cyber-header { padding: 20px; }
+    .threat-intelligence { padding: 12px; }
+}
+
+@media (max-width: 600px) {
+    .cyber-title { font-size: 1.25rem; }
+    .stat-card h3 { font-size: 1.7rem; }
+    .chart-container,
+    .live-chart-wrap { min-height: 220px; }
+}
+
+/* IST timestamps */
+.ist-time {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+.ist-zone {
+    color: #79d8ff;
+    font-size: .72em;
+    font-weight: 800;
+    letter-spacing: .04em;
+}
+</style>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{% endblock %}
+
+
+{% block content %}
+
+{% if current_user.is_authenticated
+      and current_user.role|lower == 'admin' %}
+
+<!-- =========================================================
+     ADMIN DASHBOARD
+========================================================== -->
+
+<section class="cyber-dashboard">
+
+    <!-- HEADER -->
+    <header class="cyber-header">
+
+        <div>
+
+            <h1 class="cyber-title">
+                AUTONOMOUS THREAT HUNTING SYSTEM
+            </h1>
+
+            <p class="cyber-subtitle">
+                Cyber Security Command Center
+            </p>
+
+        </div>
+
+        
+    </header>
+
+
+    <!-- =====================================================
+         MAIN THREAT STATISTICS
+    ====================================================== -->
+
+    <section class="cyber-grid">
+
+        <!-- TOTAL THREATS -->
+
+        <div
+            class="cyber-panel stat-card"
+            tabindex="0"
+            role="button"
+            onclick="openSecurityDetails('threat')"
+            onkeydown="handleCardKey(event, 'threat')"
+        >
+
+            <div class="stat-card-icon icon-purple">
+
+                <i class="fa-solid fa-shield-virus"></i>
+
+            </div>
+
+            <h3 id="totalThreats">
+                {{ total_threats|default(0, true) }}
+            </h3>
+
+            <p>
+                Total Threats
+            </p>
+
+        </div>
+
+
+        <!-- OPEN THREATS -->
+
+        <div
+            class="cyber-panel stat-card"
+            tabindex="0"
+            role="button"
+            onclick="openSecurityDetails('threat')"
+            onkeydown="handleCardKey(event, 'threat')"
+        >
+
+            <div class="stat-card-icon icon-orange">
+
+                <i class="fa-solid fa-triangle-exclamation"></i>
+
+            </div>
+
+            <h3 id="openThreats">
+                {{ open_threats|default(0, true) }}
+            </h3>
+
+            <p>
+                Open Threats
+            </p>
+
+        </div>
+
+
+        <!-- CRITICAL -->
+
+        <div
+            class="cyber-panel stat-card"
+            tabindex="0"
+            role="button"
+            onclick="openSecurityDetails('critical')"
+            onkeydown="handleCardKey(event, 'critical')"
+        >
+
+            <div class="stat-card-icon icon-red">
+
+                <i class="fa-solid fa-skull-crossbones"></i>
+
+            </div>
+
+            <h3 id="criticalThreats">
+                {{ critical_threats|default(0, true) }}
+            </h3>
+
+            <p>
+                Critical Threats
+            </p>
+
+        </div>
+
+
+        <!-- FAILED LOGIN -->
+
+        <div
+            class="cyber-panel stat-card"
+            tabindex="0"
+            role="button"
+            onclick="openSecurityDetails('failed')"
+            onkeydown="handleCardKey(event, 'failed')"
+        >
+
+            <div class="stat-card-icon icon-red">
+
+                <i class="fa-solid fa-user-lock"></i>
+
+            </div>
+
+            <h3 id="failedLoginCount">
+                {{ failed_login_attempts|default(0, true) }}
+            </h3>
+
+            <p>
+                Failed Login Attempts
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         SECURITY DETECTION CARDS
+    ====================================================== -->
+
+    <section class="security-grid">
+
+
+        <!-- SUSPICIOUS LOGIN -->
+
+        <div
+            class="cyber-panel security-card"
+            tabindex="0"
+            role="button"
+            onclick="openSecurityDetails('suspicious')"
+            onkeydown="handleCardKey(event, 'suspicious')"
+        >
+
+            <div class="security-card-header">
+
+                <div class="security-card-icon icon-orange">
+
+                    <i class="fa-solid fa-user-secret"></i>
+
+                </div>
+
+                <span
+                    class="security-card-count"
+                    id="suspiciousLoginCount"
+                >
+                    {{ suspicious_login_count|default(0, true) }}
+                </span>
+
+            </div>
+
+            <div class="security-card-title">
+                Suspicious Logins
+            </div>
+
+            <div class="security-card-description">
+                Suspicious authentication activity
+            </div>
+
+        </div>
+
+
+        <!-- BRUTE FORCE -->
+
+        <div
+            class="cyber-panel security-card"
+            tabindex="0"
+            role="button"
+            onclick="openSecurityDetails('brute_force')"
+            onkeydown="handleCardKey(event, 'brute_force')"
+        >
+
+            <div class="security-card-header">
+
+                <div class="security-card-icon icon-red">
+
+                    <i class="fa-solid fa-hammer"></i>
+
+                </div>
+
+                <span
+                    class="security-card-count"
+                    id="bruteForceCount"
+                >
+                    {{ threat_type_stats.get("brute_force", 0) if threat_type_stats else 0 }}
+                </span>
+
+            </div>
+
+            <div class="security-card-title">
+                Brute Force
+            </div>
+
+            <div class="security-card-description">
+                Repeated authentication attacks
+            </div>
+
+        </div>
+
+
+        <!-- PORT SCAN -->
+
+        <div
+            class="cyber-panel security-card"
+            tabindex="0"
+            role="button"
+            onclick="openSecurityDetails('port_scan')"
+            onkeydown="handleCardKey(event, 'port_scan')"
+        >
+
+            <div class="security-card-header">
+
+                <div class="security-card-icon icon-purple">
+
+                    <i class="fa-solid fa-network-wired"></i>
+
+                </div>
+
+                <span
+                    class="security-card-count"
+                    id="portScanCount"
+                >
+                    {{ threat_type_stats.get("network_scan", 0) if threat_type_stats else 0 }}
+                </span>
+
+            </div>
+
+            <div class="security-card-title">
+                Port Scan
+            </div>
+
+            <div class="security-card-description">
+                Network reconnaissance activity
+            </div>
+
+        </div>
+
+
+        <!-- SQL INJECTION -->
+
+        <div
+            class="cyber-panel security-card"
+            tabindex="0"
+            role="button"
+            onclick="openSecurityDetails('sql_injection')"
+            onkeydown="handleCardKey(event, 'sql_injection')"
+        >
+
+            <div class="security-card-header">
+
+                <div class="security-card-icon icon-orange">
+
+                    <i class="fa-solid fa-database"></i>
+
+                </div>
+
+                <span
+                    class="security-card-count"
+                    id="sqlInjectionCount"
+                >
+                    {{ threat_type_stats.get("sql_injection", 0) if threat_type_stats else 0 }}
+                </span>
+
+            </div>
+
+            <div class="security-card-title">
+                SQL Injection
+            </div>
+
+            <div class="security-card-description">
+                Database injection attempts
+            </div>
+
+        </div>
+
+
+        <!-- COMMAND INJECTION -->
+
+        <div
+            class="cyber-panel security-card"
+            tabindex="0"
+            role="button"
+            onclick="openSecurityDetails('command_injection')"
+            onkeydown="handleCardKey(event, 'command_injection')"
+        >
+
+            <div class="security-card-header">
+
+                <div class="security-card-icon icon-red">
+
+                    <i class="fa-solid fa-terminal"></i>
+
+                </div>
+
+                <span
+                    class="security-card-count"
+                    id="commandInjectionCount"
+                >
+                    {{ threat_type_stats.get("command_injection", 0) if threat_type_stats else 0 }}
+                </span>
+
+            </div>
+
+            <div class="security-card-title">
+                Command Injection
+            </div>
+
+            <div class="security-card-description">
+                Malicious command execution attempts
+            </div>
+
+        </div>
+
+
+        <!-- PRIVILEGE ESCALATION -->
+
+        <div
+            class="cyber-panel security-card"
+            tabindex="0"
+            role="button"
+            onclick="openSecurityDetails('privilege_escalation')"
+            onkeydown="handleCardKey(event, 'privilege_escalation')"
+        >
+
+            <div class="security-card-header">
+
+                <div class="security-card-icon icon-purple">
+
+                    <i class="fa-solid fa-user-shield"></i>
+
+                </div>
+
+                <span
+                    class="security-card-count"
+                    id="privilegeEscalationCount"
+                >
+                    {{ threat_type_stats.get("privilege_escalation", 0) if threat_type_stats else 0 }}
+                </span>
+
+            </div>
+
+            <div class="security-card-title">
+                Privilege Escalation
+            </div>
+
+            <div class="security-card-description">
+                Unauthorized privilege elevation
+            </div>
+
+        </div>
+
+
+        <!-- MALWARE -->
+
+        <div
+            class="cyber-panel security-card"
+            tabindex="0"
+            role="button"
+            onclick="openSecurityDetails('malware')"
+            onkeydown="handleCardKey(event, 'malware')"
+        >
+
+            <div class="security-card-header">
+
+                <div class="security-card-icon icon-red">
+
+                    <i class="fa-solid fa-virus"></i>
+
+                </div>
+
+                <span
+                    class="security-card-count"
+                    id="malwareCount"
+                >
+                    {{ threat_type_stats.get("malware_execution", 0) if threat_type_stats else 0 }}
+                </span>
+
+            </div>
+
+            <div class="security-card-title">
+                Malware
+            </div>
+
+            <div class="security-card-description">
+                Malicious software detections
+            </div>
+
+        </div>
+
+
+        <!-- SUSPICIOUS IP -->
+
+        <div
+            class="cyber-panel security-card"
+            tabindex="0"
+            role="button"
+            onclick="openSecurityDetails('suspicious_ip')"
+            onkeydown="handleCardKey(event, 'suspicious_ip')"
+        >
+
+            <div class="security-card-header">
+
+                <div class="security-card-icon icon-orange">
+
+                    <i class="fa-solid fa-location-crosshairs"></i>
+
+                </div>
+
+                <span
+                    class="security-card-count"
+                    id="suspiciousIpCount"
+                >
+                    {{ suspicious_ip_count|default(0, true) }}
+                </span>
+
+            </div>
+
+            <div class="security-card-title">
+                Suspicious IP
+            </div>
+
+            <div class="security-card-description">
+                Potentially malicious source IPs
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         CHARTS
+    ====================================================== -->
+
+    <section class="dashboard-two-column">
+
+
+        <!-- THREAT SEVERITY -->
+
+        <div class="cyber-panel">
+
+            <div class="panel-heading-row">
+
+                <div>
+
+                    <h2 class="panel-title">
+
+                        <i class="fa-solid fa-chart-pie"></i>
+
+                        Threat Severity
+
+                    </h2>
+
+                    <p class="authorize-description">
+
+                        Distribution of detected threats
+
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="chart-container">
+
+                <canvas id="severityChart"></canvas>
+
+                <div
+                    id="severityEmpty"
+                    class="details-empty"
+                    style="display:none;"
+                >
+                    No severity data available.
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- TOP SOURCE IPS -->
+
+        <div class="cyber-panel">
+
+            <div class="panel-heading-row">
+
+                <div>
+
+                    <h2 class="panel-title">
+
+                        <i class="fa-solid fa-network-wired"></i>
+
+                        Top Source IPs
+
+                    </h2>
+
+                    <p class="authorize-description">
+
+                        IP addresses generating the most events
+
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="chart-container">
+
+                <canvas id="topIpsChart"></canvas>
+
+                <div
+                    id="ipEmpty"
+                    class="details-empty"
+                    style="display:none;"
+                >
+                    No IP activity available.
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         THREAT INTELLIGENCE
+    ====================================================== -->
+
+    <section
+        class="threat-intelligence"
+        id="threatIntelligence"
+    >
+
+
+        <div class="ti-header">
+
+            <div>
+
+                <h2 class="ti-title">
+
+                    <i class="fa-solid fa-chart-line"></i>
+
+                    Threat Intelligence
+
+                </h2>
+
+                <p class="ti-subtitle">
+
+                    Real-time threat activity and autonomous
+                    security monitoring
+
+                </p>
+
+            </div>
+
+
+            <div class="live-indicator">
+
+                <span class="live-dot"></span>
+
+                LIVE ·
+
+                <span id="liveUpdateText">
+                    Updating
+                </span>
+
+                <span style="margin-left:10px; opacity:.8;">· IST</span>
+
+            </div>
+
+        </div>
+
+
+        <!-- THREAT OVERVIEW -->
+
+        <section class="ti-panel">
+
+            <div class="ti-panel-title">
+                THREAT OVERVIEW
+            </div>
+
+
+            <div class="threat-overview-grid">
+
+
+                <div class="overview-card critical">
+
+                    <span>
+
+                        <i class="fa-solid fa-skull-crossbones"></i>
+
+                        CRITICAL
+
+                    </span>
+
+                    <strong id="tiCritical">
+                        {{ critical_threats|default(0, true) }}
+                    </strong>
+
+                </div>
+
+
+                <div class="overview-card high">
+
+                    <span>
+
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+
+                        HIGH
+
+                    </span>
+
+                    <strong id="tiHigh">
+                        {{ high_threats|default(0, true) }}
+                    </strong>
+
+                </div>
+
+
+                <div class="overview-card medium">
+
+                    <span>
+
+                        <i class="fa-solid fa-circle-exclamation"></i>
+
+                        MEDIUM
+
+                    </span>
+
+                    <strong id="tiMedium">
+                        {{ medium_threats|default(0, true) }}
+                    </strong>
+
+                </div>
+
+
+                <div class="overview-card low">
+
+                    <span>
+
+                        <i class="fa-solid fa-circle-info"></i>
+
+                        LOW
+
+                    </span>
+
+                    <strong id="tiLow">
+                        {{ low_threats|default(0, true) }}
+                    </strong>
+
+                </div>
+
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             TOP IPS + AUTOMATED RESPONSE
+        ================================================== -->
+
+        <div class="ti-two-column">
+
+
+            <!-- TOP SUSPICIOUS IPS -->
+
+            <section class="ti-panel">
+
+                <div class="ti-panel-heading">
+
+                    <div>
+
+                        <div class="ti-panel-title">
+                            TOP SUSPICIOUS IPS
+                        </div>
+
+                        <p>
+                            Highest-volume suspicious source addresses
+                        </p>
+
+                    </div>
+
+                    <i class="fa-solid fa-location-crosshairs"></i>
+
+                </div>
+
+
+                <div class="ti-table-wrap">
+
+                    <table class="ti-table">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    IP ADDRESS
+                                </th>
+
+                                <th>
+                                    EVENTS
+                                </th>
+
+                                <th>
+                                    RISK
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody id="suspiciousIpRows">
+
+                            {% for ip, count in
+                               (top_suspicious_ips|default([], true))[:5] %}
+
+                            <tr>
+
+                                <td>
+                                    <code>{{ ip }}</code>
+                                </td>
+
+                                <td>
+                                    {{ count }}
+                                </td>
+
+                                <td>
+
+                                    <span class="risk-badge high">
+                                        HIGH
+                                    </span>
+
+                                </td>
+
+                            </tr>
+
+                            {% else %}
+
+                            <tr>
+
+                                <td
+                                    colspan="3"
+                                    class="ti-empty"
+                                >
+                                    No suspicious IPs detected
+                                </td>
+
+                            </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+
+            <!-- AUTOMATED RESPONSE -->
+
+            <section class="ti-panel">
+
+                <div class="ti-panel-heading">
+
+                    <div>
+
+                        <div class="ti-panel-title">
+                            AUTOMATED RESPONSE
+                        </div>
+
+                        <p>
+                            Latest autonomous threat findings
+                        </p>
+
+                    </div>
+
+                    <i class="fa-solid fa-bolt"></i>
+
+                </div>
+
+
+                <div
+                    class="response-list"
+                    id="responseList"
+                >
+
+                    {% for threat in
+                       (recent_threats|default([], true))[:5] %}
+
+                    <div class="response-item">
+
+                        <div class="response-main">
+
+                            <strong>
+                                {{ threat.title }}
+                            </strong>
+
+                            <small
+                                class="ist-time"
+                                data-utc="{{
+                                    threat.created_at.isoformat()
+                                    if threat.created_at
+                                    else ''
+                                }}"
+                                title="Displayed in India Standard Time (IST)"
+                            >
+                                {% if threat.created_at %}
+                                    {{ threat.created_at|ist_full }}
+                                {% else %}
+                                    --:--:--
+                                {% endif %}
+                            </small>
+
+                        </div>
+
+
+                        <span
+                            class="severity-badge
+                            {{
+                                threat.severity|lower
+                                if threat.severity
+                                else 'medium'
+                            }}"
+                        >
+                            {{ threat.severity or 'MEDIUM' }}
+                        </span>
+
+                    </div>
+
+                    {% else %}
+
+                    <div class="ti-empty">
+                        No recent alerts
+                    </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </section>
+
+        </div>
+
+
+        <!-- =================================================
+             LIVE THREAT ACTIVITY
+        ================================================== -->
+
+        <section class="ti-panel live-threat-panel">
+
+            <div class="ti-panel-heading">
+
+                <div>
+
+                    <div class="ti-panel-title">
+                        LIVE THREAT ACTIVITY
+                    </div>
+
+                    <p>
+                        Threat events detected over the latest
+                        monitoring window
+                    </p>
+
+                </div>
+
+
+                <span class="live-window">
+                    LAST 20 UPDATES
+                </span>
+
+            </div>
+
+
+            <div class="live-chart-wrap">
+
+                <canvas id="liveThreatChart"></canvas>
+
+                <div
+                    id="liveThreatEmpty"
+                    class="ti-chart-empty"
+                    style="display:none;"
+                >
+                    Waiting for threat activity...
+                </div>
+
+            </div>
+
+
+            <div class="live-chart-status">
+
+                <span class="live-dot"></span>
+
+                <span id="liveThreatStatus">
+                    Live monitoring enabled ·
+                    refreshes every 5 seconds
+                </span>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             SEVERITY + CONFIDENCE
+        ================================================== -->
+
+        <div class="ti-two-column">
+
+
+            <!-- THREAT SEVERITY -->
+
+            <section class="ti-panel">
+
+                <div class="ti-panel-title">
+                    THREAT SEVERITY
+                </div>
+
+
+                {% set max_threat = [
+                    critical_threats,
+                    high_threats,
+                    medium_threats,
+                    low_threats
+                ] | max %}
+
+
+                <div class="severity-bars">
+
+
+                    <div class="severity-row">
+
+                        <span>
+                            LOW
+                        </span>
+
+                        <div class="severity-track">
+
+                            <div
+                                class="severity-fill low"
+                                id="severityLowBar"
+                                style="width:{{
+                                    (low_threats / max_threat * 100)
+                                    if max_threat
+                                    else 0
+                                }}%"
+                            ></div>
+
+                        </div>
+
+                        <strong id="severityLow">
+                            {{ low_threats|default(0, true) }}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="severity-row">
+
+                        <span>
+                            MEDIUM
+                        </span>
+
+                        <div class="severity-track">
+
+                            <div
+                                class="severity-fill medium"
+                                id="severityMediumBar"
+                                style="width:{{
+                                    (medium_threats / max_threat * 100)
+                                    if max_threat
+                                    else 0
+                                }}%"
+                            ></div>
+
+                        </div>
+
+                        <strong id="severityMedium">
+                            {{ medium_threats|default(0, true) }}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="severity-row">
+
+                        <span>
+                            HIGH
+                        </span>
+
+                        <div class="severity-track">
+
+                            <div
+                                class="severity-fill high"
+                                id="severityHighBar"
+                                style="width:{{
+                                    (high_threats / max_threat * 100)
+                                    if max_threat
+                                    else 0
+                                }}%"
+                            ></div>
+
+                        </div>
+
+                        <strong id="severityHigh">
+                            {{ high_threats|default(0, true) }}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="severity-row">
+
+                        <span>
+                            CRITICAL
+                        </span>
+
+                        <div class="severity-track">
+
+                            <div
+                                class="severity-fill critical"
+                                id="severityCriticalBar"
+                                style="width:{{
+                                    (critical_threats / max_threat * 100)
+                                    if max_threat
+                                    else 0
+                                }}%"
+                            ></div>
+
+                        </div>
+
+                        <strong id="severityCritical">
+                            {{ critical_threats|default(0, true) }}
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- DETECTION CONFIDENCE -->
+
+            <section class="ti-panel confidence-panel">
+
+                <div class="ti-panel-title">
+                    DETECTION CONFIDENCE
+                </div>
+
+
+                <div
+                    class="confidence-ring-large"
+                    id="confidenceRing"
+                    style="--confidence:{{
+                        average_confidence
+                        |default(0, true)
+                        |round
+                        |int
+                    }}%;"
+                >
+
+                    <div>
+
+                        <strong id="tiConfidence">
+
+                            {{
+                                average_confidence
+                                |default(0, true)
+                                |round
+                                |int
+                            }}%
+
+                        </strong>
+
+                        <span>
+                            AI CONFIDENCE
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </div>
+
+
+        <!-- =================================================
+             SYSTEM METRICS
+        ================================================== -->
+
+        <section class="system-metrics-grid">
+
+
+            <div class="ti-panel metric-card">
+
+                <span>
+                    TOTAL THREATS
+                </span>
+
+                <strong id="tiTotalThreats">
+                    {{ total_threats|default(0, true) }}
+                </strong>
+
+            </div>
+
+
+            <div class="ti-panel metric-card">
+
+                <span>
+                    OPEN THREATS
+                </span>
+
+                <strong id="tiOpenThreats">
+                    {{ open_threats|default(0, true) }}
+                </strong>
+
+            </div>
+
+
+            <div class="ti-panel metric-card">
+
+                <span>
+                    CORRELATED
+                </span>
+
+                <strong id="tiCorrelated">
+                    {{
+                        correlated_threats
+                        |default([], true)
+                        |length
+                    }}
+                </strong>
+
+            </div>
+
+
+            <div class="ti-panel metric-card">
+
+                <span>
+                    LLM ANALYZED
+                </span>
+
+                <strong id="tiLlmAnalyzed">
+                    {{ llm_analyzed_count|default(0, true) }}
+                </strong>
+
+            </div>
+
+
+            <div class="ti-panel metric-card">
+
+                <span>
+                    MITRE MAPPED
+                </span>
+
+                <strong id="tiMitreMapped">
+                    {{ mitre_mapped_count|default(0, true) }}
+                </strong>
+
+            </div>
+
+
+        </section>
+
+    </section>
+
+
+    <!-- =====================================================
+         ADMIN AUTHORIZE USER
+    ====================================================== -->
+
+    <section class="cyber-panel authorize-panel">
+
+        <div class="panel-heading-row">
+
+            <div>
+
+                <h2 class="panel-title">
+
+                    <i class="fa-solid fa-user-shield"></i>
+
+                    Authorize New User
+
+                </h2>
+
+                <p class="authorize-description">
+
+                    Enter a user's email address to authorize
+                    registration.
+
+                    Authorized users can create their account
+                    and login.
+
+                </p>
+
+            </div>
+
+
+            <span class="admin-access-badge">
+
+                <i class="fa-solid fa-lock"></i>
+
+                ADMIN ONLY
+
+            </span>
+
+        </div>
+
+
+        <form
+            id="authorizeUserForm"
+            class="authorize-form"
+        >
+
+            <div class="authorize-input-wrapper">
+
+                <i class="fa-solid fa-envelope"></i>
+
+                <input
+                    type="email"
+                    id="userEmail"
+                    name="email"
+                    placeholder="Enter new user's email address"
+                    autocomplete="off"
+                    required
+                >
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="authorize-btn"
+                id="authorizeUserButton"
+            >
+
+                <i class="fa-solid fa-user-check"></i>
+
+                Authorize User
+
+            </button>
+
+        </form>
+
+
+        <div
+            id="adminMessage"
+            class="authorize-message"
+        ></div>
+
+    </section>
+
+
+    <!-- =====================================================
+         AUTHORIZED USERS
+    ====================================================== -->
+
+    <section class="cyber-panel authorized-users-panel">
+
+        <div class="panel-heading-row">
+
+            <div>
+
+                <h2 class="panel-title">
+
+                    <i class="fa-solid fa-users-gear"></i>
+
+                    Authorized Users
+
+                </h2>
+
+                <p class="authorize-description">
+
+                    Users currently authorized to register
+                    in the system.
+
+                </p>
+
+            </div>
+
+
+            <span
+                class="authorized-count"
+                id="authorizedUserCount"
+            >
+                0 Users
+            </span>
+
+        </div>
+
+
+        <div class="authorized-users-wrapper">
+
+            <table class="authorized-users-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+
+                        <th>EMAIL</th>
+
+                        <th>STATUS</th>
+
+                        <th>AUTHORIZED ON</th>
+
+                        <th>ACTION</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="authorizedUsersTable">
+
+                    <tr>
+
+                        <td
+                            colspan="5"
+                            class="empty-table"
+                        >
+
+                            <i
+                                class="fa-solid fa-spinner fa-spin"
+                            ></i>
+
+                            Loading authorized users...
+
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</section>
+
+
+{% else %}
+
+<!-- =========================================================
+     NORMAL USER
+========================================================== -->
+
+<section
+    class="cyber-panel"
+    style="margin-top:20px;"
+>
+
+    <div class="panel-heading-row">
+
+        <div>
+
+            <h2 class="panel-title">
+
+                <i class="fa-solid fa-shield-check"></i>
+
+                Account Security
+
+            </h2>
+
+            <p class="authorize-description">
+
+                Your account is protected by the
+                Autonomous Threat Hunting System.
+
+            </p>
+
+        </div>
+
+
+        <span class="user-badge">
+
+            <i class="fa-solid fa-lock"></i>
+
+            PROTECTED
+
+        </span>
+
+    </div>
+
+
+    <div class="user-info-grid">
+
+
+        <div class="user-card">
+
+            <span class="user-card-label">
+                Account Status
+            </span>
+
+            <div class="user-card-value">
+                Active
+            </div>
+
+        </div>
+
+
+        <div class="user-card">
+
+            <span class="user-card-label">
+                Security Monitoring
+            </span>
+
+            <div class="user-card-value">
+                Enabled
+            </div>
+
+        </div>
+
+
+    </div>
+
+</section>
+
+{% endif %}
+
+
+<!-- =========================================================
+     SECURITY DETAILS MODAL
+========================================================== -->
+
+<div
+    class="modal fade"
+    id="securityDetailsModal"
+    tabindex="-1"
+    aria-hidden="true"
+>
+
+    <div
+        class="modal-dialog modal-xl modal-dialog-centered"
+    >
+
+        <div class="modal-content">
+
+
+            <div class="modal-header">
+
+                <h5
+                    class="modal-title"
+                    id="securityDetailsTitle"
+                >
+                    Security Details
+                </h5>
+
+
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                ></button>
+
+            </div>
+
+
+            <div class="modal-body">
+
+
+                <!-- DETAIL STATS -->
+
+                <div class="security-detail-stats">
+
+
+                    <div class="detail-stat">
+
+                        <strong id="detailTotal">
+                            0
+                        </strong>
+
+                        <span>
+                            Total Events
+                        </span>
+
+                    </div>
+
+
+                    <div class="detail-stat">
+
+                        <strong id="detailUsers">
+                            0
+                        </strong>
+
+                        <span>
+                            Users
+                        </span>
+
+                    </div>
+
+
+                    <div class="detail-stat">
+
+                        <strong id="detailIPs">
+                            0
+                        </strong>
+
+                        <span>
+                            Source IPs
+                        </span>
+
+                    </div>
+
+
+                </div>
+
+
+                <!-- LOADING -->
+
+                <div
+                    id="detailsLoading"
+                    class="details-empty"
+                >
+
+                    <i
+                        class="fa-solid fa-spinner fa-spin"
+                    ></i>
+
+                    Loading security details...
+
+                </div>
+
+
+                <!-- EMPTY -->
+
+                <div
+                    id="detailsEmpty"
+                    class="details-empty"
+                    style="display:none;"
+                >
+
+                    <i
+                        class="fa-solid fa-circle-info"
+                    ></i>
+
+                    No security activity found.
+
+                </div>
+
+
+                <!-- TABLE -->
+
+                <div
+                    id="detailsTableContainer"
+                    class="details-table-wrapper"
+                    style="display:none;"
+                >
+
+                    <table class="details-table">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>#</th>
+
+                                <th>USER</th>
+
+                                <th>SOURCE IP</th>
+
+                                <th>STATUS</th>
+
+                                <th>THREAT</th>
+
+                                <th>SEVERITY</th>
+
+                                <th>DATE</th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody
+                            id="detailsTableBody"
+                        ></tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+
+            <div class="modal-footer">
+
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    data-bs-dismiss="modal"
+                >
+                    Close
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script
+    src="{{ url_for('static', filename='js/dashboard.js') }}"
+></script>
+
+<script>
+(function () {
+    "use strict";
+
+    /*
+     * ATHS timestamp policy:
+     *   Database/API values are UTC.
+     *   Dashboard display is always Asia/Kolkata (IST).
+     *
+     * A naive Python datetime is treated as UTC because the existing
+     * ATHS database stores UTC values without a timezone suffix.
+     */
+    function formatIST(value) {
+        if (value === null || value === undefined || value === "") {
+            return "--:--:--";
+        }
+
+        var raw = String(value).trim();
+        var normalized = raw;
+
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/.test(normalized)) {
+            normalized += "Z";
+        } else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d+)?$/.test(normalized)) {
+            normalized = normalized.replace(" ", "T") + "Z";
+        }
+
+        var date = new Date(normalized);
+        if (isNaN(date.getTime())) {
+            return raw;
+        }
+
+        var parts = new Intl.DateTimeFormat("en-IN", {
+            timeZone: "Asia/Kolkata",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false
+        }).formatToParts(date);
+
+        var map = {};
+        parts.forEach(function (part) {
+            if (part.type !== "literal") {
+                map[part.type] = part.value;
+            }
+        });
+
+        return map.day + "-" + map.month + "-" + map.year +
+               " " + map.hour + ":" + map.minute + ":" + map.second + " IST";
+    }
+
+    function looksLikeTimestamp(value) {
+        if (!value) return false;
+        return /^\d{4}-\d{2}-\d{2}(?:T| )\d{2}:\d{2}:\d{2}/.test(String(value).trim());
+    }
+
+    function updateISTTimes(root) {
+        (root || document).querySelectorAll("[data-utc]").forEach(function (el) {
+            var value = el.getAttribute("data-utc");
+            if (value) {
+                el.textContent = formatIST(value);
+            }
+        });
+    }
+
+    function updateDynamicDashboardTimes(root) {
+        var scope = root || document;
+
+        /* Dashboard.js creates these rows dynamically from API timestamps. */
+        scope.querySelectorAll("#responseList small, #detailsTableBody td").forEach(function (el) {
+            if (el.hasAttribute("data-ist-processed")) return;
+
+            var text = (el.textContent || "").trim();
+            if (!looksLikeTimestamp(text)) return;
+
+            el.textContent = formatIST(text);
+            el.setAttribute("data-ist-processed", "1");
+            el.title = "Displayed in India Standard Time (IST)";
+        });
+    }
+
+    window.formatATHSIST = formatIST;
+    window.updateATHSISTTimes = function (root) {
+        updateISTTimes(root);
+        updateDynamicDashboardTimes(root);
+    };
+
+    document.addEventListener("DOMContentLoaded", function () {
+        window.updateATHSISTTimes(document);
+
+        var observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                mutation.addedNodes.forEach(function (node) {
+                    if (node.nodeType === 1) {
+                        window.updateATHSISTTimes(node);
+                    }
+                });
+            });
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    });
+})();
+</script>
+
+
+{% endblock %}

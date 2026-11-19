@@ -1,0 +1,843 @@
+{% extends "base.html" %}
+
+{% block title %}Security History | Autonomous Threat Hunting System{% endblock %}
+
+{% block page_title %}Security History{% endblock %}
+
+{% block head %}
+<style>
+    /* ============================================================
+       HISTORY PAGE
+       Uses the shared base.html sidebar/layout
+       ============================================================ */
+
+    .history-page {
+        width: 100%;
+    }
+
+    .history-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 18px;
+        margin-bottom: 24px;
+    }
+
+    .history-header h2 {
+        margin: 0 0 7px;
+        font-size: 27px;
+    }
+
+    .history-header p {
+        margin: 0;
+        color: var(--muted, #91a4b8);
+    }
+
+    .timezone-badge {
+        background: #10263a;
+        border: 1px solid #24384d;
+        border-radius: 8px;
+        padding: 9px 12px;
+        color: #bcd2e5;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    /* ============================================================
+       SUMMARY CARDS
+       ============================================================ */
+
+    .history-cards {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 22px;
+    }
+
+    .history-card {
+        background: var(--panel, #0d1b2a);
+        border: 1px solid var(--border, #24384d);
+        border-radius: 12px;
+        padding: 18px;
+        box-shadow: var(--shadow, 0 14px 35px rgba(0, 0, 0, .25));
+    }
+
+    .history-card .label {
+        color: var(--muted, #91a4b8);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: .7px;
+    }
+
+    .history-card .value {
+        margin-top: 8px;
+        font-size: 25px;
+        font-weight: 700;
+    }
+
+    /* ============================================================
+       SECTIONS
+       ============================================================ */
+
+    .history-section {
+        background: var(--panel, #0d1b2a);
+        border: 1px solid var(--border, #24384d);
+        border-radius: 12px;
+        box-shadow: var(--shadow, 0 14px 35px rgba(0, 0, 0, .25));
+        margin-bottom: 22px;
+        overflow: hidden;
+    }
+
+    .history-section-header {
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--border, #24384d);
+    }
+
+    .history-section-header h3 {
+        margin: 0 0 5px;
+        font-size: 17px;
+    }
+
+    .history-section-header p {
+        margin: 0;
+        color: var(--muted, #91a4b8);
+        font-size: 12px;
+    }
+
+    /* ============================================================
+       TABLE
+       ============================================================ */
+
+    .history-table-wrap {
+        overflow-x: auto;
+    }
+
+    .history-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 900px;
+    }
+
+    .history-table th,
+    .history-table td {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border, #24384d);
+        text-align: left;
+        vertical-align: top;
+        font-size: 13px;
+    }
+
+    .history-table th {
+        color: #aac0d4;
+        background: var(--panel-2, #102235);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+    }
+
+    .history-table td {
+        color: #dbe7f0;
+    }
+
+    .history-table tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .history-muted {
+        color: var(--muted, #91a4b8);
+    }
+
+    .history-timestamp {
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .history-subtext {
+        display: block;
+        color: var(--muted, #91a4b8);
+        font-size: 10px;
+        margin-top: 3px;
+    }
+
+    /* ============================================================
+       SEVERITY BADGES
+       ============================================================ */
+
+    .history-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .4px;
+    }
+
+    .history-low {
+        background: rgba(57, 217, 138, .14);
+        color: #39d98a;
+    }
+
+    .history-medium {
+        background: rgba(255, 204, 102, .14);
+        color: #ffcc66;
+    }
+
+    .history-high {
+        background: rgba(255, 139, 102, .14);
+        color: #ff9b76;
+    }
+
+    .history-critical {
+        background: rgba(255, 59, 92, .14);
+        color: #ff3b5c;
+    }
+
+    /* ============================================================
+       ALERT STATUS
+       ============================================================ */
+
+    .history-status-sent {
+        color: #39d98a;
+        font-weight: 700;
+    }
+
+    .history-status-failed {
+        color: #ff6b6b;
+        font-weight: 700;
+    }
+
+    .history-status-suppressed {
+        color: #ffcc66;
+        font-weight: 700;
+    }
+
+    /* ============================================================
+       EMPTY STATE
+       ============================================================ */
+
+    .history-empty {
+        padding: 35px 20px;
+        text-align: center;
+        color: var(--muted, #91a4b8);
+    }
+
+    /* ============================================================
+       FOOTER
+       ============================================================ */
+
+    .history-footer-note {
+        color: var(--muted, #91a4b8);
+        text-align: center;
+        font-size: 11px;
+        padding: 10px 0 25px;
+    }
+
+    /* ============================================================
+       RESPONSIVE
+       ============================================================ */
+
+    @media (max-width: 1000px) {
+        .history-cards {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 700px) {
+        .history-header {
+            display: block;
+        }
+
+        .timezone-badge {
+            display: inline-block;
+            margin-top: 12px;
+        }
+
+        .history-cards {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 460px) {
+        .history-cards {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+<div class="history-page">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <div class="history-header">
+
+        <div>
+            <h2>
+                Security History
+            </h2>
+
+            <p>
+                Historical threats and notification activity
+                for your authorized account.
+            </p>
+        </div>
+
+        <div class="timezone-badge">
+            🕒 Display timezone:
+            <strong>Asia/Kolkata (IST)</strong>
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         COUNTS
+         ======================================================== -->
+
+    {% set threat_count = threats_history|length %}
+    {% set alert_count = alerts_history|length %}
+
+    {% set critical_count = namespace(value=0) %}
+    {% set high_count = namespace(value=0) %}
+
+    {% for threat in threats_history %}
+
+        {% set severity =
+            (threat.severity|string|upper)
+        %}
+
+        {% if severity == 'CRITICAL' %}
+
+            {% set critical_count.value =
+                critical_count.value + 1
+            %}
+
+        {% elif severity == 'HIGH' %}
+
+            {% set high_count.value =
+                high_count.value + 1
+            %}
+
+        {% endif %}
+
+    {% endfor %}
+
+
+    <section class="history-cards">
+
+        <div class="history-card">
+
+            <div class="label">
+                Threat History
+            </div>
+
+            <div class="value">
+                {{ threat_count }}
+            </div>
+
+        </div>
+
+
+        <div class="history-card">
+
+            <div class="label">
+                Critical Threats
+            </div>
+
+            <div class="value">
+                {{ critical_count.value }}
+            </div>
+
+        </div>
+
+
+        <div class="history-card">
+
+            <div class="label">
+                High Threats
+            </div>
+
+            <div class="value">
+                {{ high_count.value }}
+            </div>
+
+        </div>
+
+
+        <div class="history-card">
+
+            <div class="label">
+                Alert Records
+            </div>
+
+            <div class="value">
+                {{ alert_count }}
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         THREAT HISTORY
+         ======================================================== -->
+
+    <section class="history-section">
+
+        <div class="history-section-header">
+
+            <h3>
+                Detected Threat History
+            </h3>
+
+            <p>
+                Threat creation, analysis and ownership information.
+            </p>
+
+        </div>
+
+
+        {% if threats_history %}
+
+        <div class="history-table-wrap">
+
+            <table class="history-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>ID</th>
+
+                        <th>Threat</th>
+
+                        <th>Type</th>
+
+                        <th>Severity</th>
+
+                        <th>Status</th>
+
+                        <th>Confidence</th>
+
+                        <th>Source IP</th>
+
+                        <th>Detected At</th>
+
+                        <th>Analyzed At</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                {% for threat in threats_history %}
+
+                    {% set severity =
+                        (threat.severity|string|upper)
+                    %}
+
+
+                    <tr>
+
+                        <!-- ID -->
+
+                        <td>
+
+                            <strong>
+                                #{{ threat.id }}
+                            </strong>
+
+                        </td>
+
+
+                        <!-- Threat -->
+
+                        <td>
+
+                            <strong>
+                                {{ threat.title or 'Threat Detected' }}
+                            </strong>
+
+                            {% if threat.user %}
+
+                                <span class="history-subtext">
+                                    User: {{ threat.user }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- Type -->
+
+                        <td>
+                            {{ threat.threat_type or 'Unknown' }}
+                        </td>
+
+
+                        <!-- Severity -->
+
+                        <td>
+
+                            <span class="history-badge
+
+                                {% if severity == 'CRITICAL' %}
+                                    history-critical
+
+                                {% elif severity == 'HIGH' %}
+                                    history-high
+
+                                {% elif severity == 'MEDIUM' %}
+                                    history-medium
+
+                                {% else %}
+                                    history-low
+                                {% endif %}
+
+                            ">
+
+                                {{ severity or 'UNKNOWN' }}
+
+                            </span>
+
+                        </td>
+
+
+                        <!-- Status -->
+
+                        <td>
+                            {{ threat.status or 'OPEN' }}
+                        </td>
+
+
+                        <!-- Confidence -->
+
+                        <td>
+
+                            {% if threat.confidence is not none %}
+
+                                {{ threat.confidence }}%
+
+                            {% else %}
+
+                                —
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- Source IP -->
+
+                        <td>
+
+                            {{ threat.source_ip or '—' }}
+
+                            {% if threat.dest_ip %}
+
+                                <span class="history-subtext">
+                                    → {{ threat.dest_ip }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- Detected At -->
+
+                        <td class="history-timestamp">
+
+                            {% if threat.created_at %}
+
+                                {{ threat.created_at|ist_full }}
+
+                            {% else %}
+
+                                —
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- Analyzed At -->
+
+                        <td class="history-timestamp">
+
+                            {% if threat.analyzed_at %}
+
+                                {{ threat.analyzed_at|ist_full }}
+
+                            {% else %}
+
+                                —
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        {% else %}
+
+            <div class="history-empty">
+
+                No threat history is available
+                for the current account.
+
+            </div>
+
+        {% endif %}
+
+    </section>
+
+
+    <!-- ========================================================
+         ALERT / EMAIL HISTORY
+         ======================================================== -->
+
+    <section class="history-section">
+
+        <div class="history-section-header">
+
+            <h3>
+                Alert / Email History
+            </h3>
+
+            <p>
+                Notification records ordered by the actual
+                email delivery timestamp.
+            </p>
+
+        </div>
+
+
+        {% if alerts_history %}
+
+        <div class="history-table-wrap">
+
+            <table class="history-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>ID</th>
+
+                        <th>Threat</th>
+
+                        <th>Channel</th>
+
+                        <th>Status</th>
+
+                        <th>Sent</th>
+
+                        <th>Sent At</th>
+
+                        <th>Error</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                {% for alert in alerts_history %}
+
+                    {% set alert_status =
+                        (alert.status|string|upper)
+                    %}
+
+
+                    <tr>
+
+                        <!-- Alert ID -->
+
+                        <td>
+
+                            <strong>
+                                #{{ alert.id }}
+                            </strong>
+
+                        </td>
+
+
+                        <!-- Threat -->
+
+                        <td>
+
+                            {% if alert.threat_event %}
+
+                                <strong>
+                                    #{{ alert.threat_event.id }}
+                                </strong>
+
+                                —
+
+                                {{ alert.threat_event.title
+                                   or 'Threat Detected' }}
+
+                            {% else %}
+
+                                —
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- Channel -->
+
+                        <td>
+                            {{ alert.channel or 'email' }}
+                        </td>
+
+
+                        <!-- Status -->
+
+                        <td>
+
+                            {% if alert_status == 'SENT' %}
+
+                                <span class="history-status-sent">
+                                    SENT
+                                </span>
+
+                            {% elif alert_status == 'FAILED' %}
+
+                                <span class="history-status-failed">
+                                    FAILED
+                                </span>
+
+                            {% elif alert_status == 'SUPPRESSED' %}
+
+                                <span class="history-status-suppressed">
+                                    SUPPRESSED
+                                </span>
+
+                            {% else %}
+
+                                {{ alert_status or 'UNKNOWN' }}
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- Sent -->
+
+                        <td>
+
+                            {% if alert.sent %}
+
+                                Yes
+
+                            {% else %}
+
+                                No
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- Sent At -->
+
+                        <td class="history-timestamp">
+
+                            {% if alert.sent_at %}
+
+                                {{ alert.sent_at|ist_full }}
+
+                            {% else %}
+
+                                —
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- Error -->
+
+                        <td>
+
+                            {% if alert.error %}
+
+                                <span class="history-muted">
+                                    {{ alert.error }}
+                                </span>
+
+                            {% else %}
+
+                                —
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        {% else %}
+
+            <div class="history-empty">
+
+                No alert history is available
+                for the current account.
+
+            </div>
+
+        {% endif %}
+
+    </section>
+
+
+    <!-- ========================================================
+         FOOTER
+         ======================================================== -->
+
+    <div class="history-footer-note">
+
+        Database timestamps remain UTC.
+        This page converts them automatically to
+
+        <strong>
+            Asia/Kolkata (IST)
+        </strong>
+
+        for display.
+
+    </div>
+
+</div>
+
+{% endblock %}

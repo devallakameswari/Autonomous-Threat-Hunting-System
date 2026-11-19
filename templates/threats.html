@@ -1,0 +1,241 @@
+```html
+{% extends "base.html" %}
+
+{% block title %}Threats - Threat Hunting System{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <h2 class="page-title">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i>
+        Detected Threats
+    </h2>
+
+    <div class="btn-group">
+
+        {% for sev in ['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] %}
+
+        <a href="{{ url_for('threats', severity=sev) }}"
+           class="btn btn-sm {% if severity_filter == sev %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            {{ sev }}
+        </a>
+
+        {% endfor %}
+
+    </div>
+
+</div>
+
+
+<div class="panel">
+
+    <div class="table-responsive">
+
+        <table class="table table-hover align-middle">
+
+            <thead>
+                <tr>
+                    <th>Severity</th>
+                    <th>Title</th>
+                    <th>Type</th>
+                    <th>MITRE</th>
+                    <th>Source IP</th>
+                    <th>Confidence</th>
+                    <th>Detected By</th>
+                    <th>Status</th>
+                    <th>When</th>
+                    <th>Update</th>
+                </tr>
+            </thead>
+
+
+            <tbody>
+
+                {% for t in threats %}
+
+                <tr>
+
+                    <!-- Severity -->
+                    <td>
+                        <span class="badge severity-badge severity-{{ t.severity|lower }}">
+                            {{ t.severity }}
+                        </span>
+                    </td>
+
+
+                    <!-- Title -->
+                    <td>
+
+                        {{ t.title }}
+
+                        {% if t.llm_summary %}
+
+                        <button
+                            class="btn btn-link btn-sm p-0 ms-1"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#summary-{{ t.id }}"
+                            type="button"
+                            title="View AI summary">
+
+                            <i class="fa-solid fa-circle-info"></i>
+
+                        </button>
+
+                        <div class="collapse mt-1" id="summary-{{ t.id }}">
+
+                            <div class="ai-summary-box">
+                                {{ t.llm_summary }}
+                            </div>
+
+                        </div>
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <!-- Threat Type -->
+                    <td>
+                        <code>{{ t.threat_type }}</code>
+                    </td>
+
+
+                    <!-- MITRE -->
+                    <td class="text-muted small">
+                        {{ t.mitre_techniques or '—' }}
+                    </td>
+
+
+                    <!-- Source IP -->
+                    <td>
+                        {{ t.source_ip or '—' }}
+                    </td>
+
+
+                    <!-- Confidence -->
+                    <!-- Backend already returns confidence as 0-100 -->
+                    <td>
+
+                        {% set confidence = t.confidence|float %}
+
+                        {% if confidence < 0 %}
+                            {% set confidence = 0 %}
+                        {% elif confidence > 100 %}
+                            {% set confidence = 100 %}
+                        {% endif %}
+
+                        <span class="fw-semibold">
+                            {{ confidence|round(0)|int }}%
+                        </span>
+
+                    </td>
+
+
+                    <!-- Detection Source -->
+                    <td class="text-muted small">
+                        {{ t.detection_source or '—' }}
+                    </td>
+
+
+                    <!-- Status -->
+                    <td>
+
+                        <span class="badge status-badge status-{{ (t.status or 'OPEN')|lower }}">
+                            {{ t.status or 'OPEN' }}
+                        </span>
+
+                    </td>
+
+
+                    <!-- Detection Time -->
+                    <td class="text-muted small">
+
+                        {% if t.analyzed_at %}
+                            {{ t.analyzed_at.strftime('%Y-%m-%d %H:%M:%S') }}
+
+                        {% elif t.created_at %}
+                            {{ t.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+
+                        {% else %}
+                            —
+                        {% endif %}
+
+                    </td>
+
+
+                    <!-- Status Update -->
+                    <td>
+
+                        <form
+                            method="POST"
+                            action="{{ url_for('update_threat_status', threat_id=t.id) }}"
+                            class="d-flex gap-1">
+
+                            <select
+                                name="status"
+                                class="form-select form-select-sm">
+
+                                <option value="OPEN"
+                                    {% if (t.status or 'OPEN') == 'OPEN' %}
+                                        selected
+                                    {% endif %}>
+                                    Open
+                                </option>
+
+                                <option value="ACKNOWLEDGED"
+                                    {% if t.status == 'ACKNOWLEDGED' %}
+                                        selected
+                                    {% endif %}>
+                                    Acknowledged
+                                </option>
+
+                                <option value="RESOLVED"
+                                    {% if t.status == 'RESOLVED' %}
+                                        selected
+                                    {% endif %}>
+                                    Resolved
+                                </option>
+
+                            </select>
+
+                            <button
+                                type="submit"
+                                class="btn btn-sm btn-outline-primary"
+                                title="Update status">
+
+                                <i class="fa-solid fa-check"></i>
+
+                            </button>
+
+                        </form>
+
+                    </td>
+
+                </tr>
+
+
+                {% else %}
+
+                <tr>
+
+                    <td colspan="10"
+                        class="text-center text-muted py-4">
+
+                        No threats found for this filter.
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

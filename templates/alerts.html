@@ -1,0 +1,897 @@
+{% extends "base.html" %}
+
+{% block title %}
+Security Alerts | Autonomous Threat Hunting System
+{% endblock %}
+
+{% block page_title %}
+Security Alerts
+{% endblock %}
+
+{% block head %}
+<style>
+    .alerts-page {
+        width: 100%;
+    }
+
+    .alerts-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+
+    .alerts-header h2 {
+        margin: 0 0 7px;
+        font-size: 27px;
+        font-weight: 700;
+        color: #111827;
+    }
+
+    .alerts-header p {
+        margin: 0;
+        color: #6b7280;
+        font-size: 14px;
+    }
+
+    .timezone-badge {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 9px 13px;
+        color: #4b5563;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    /* =========================================================
+       SUMMARY CARDS
+       ========================================================= */
+
+    .alert-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .alert-summary-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    }
+
+    .alert-summary-label {
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+    }
+
+    .alert-summary-value {
+        margin-top: 8px;
+        font-size: 28px;
+        font-weight: 800;
+        color: #111827;
+    }
+
+    .alert-summary-card.sent .alert-summary-value {
+        color: #16a34a;
+    }
+
+    .alert-summary-card.failed .alert-summary-value {
+        color: #dc2626;
+    }
+
+    .alert-summary-card.suppressed .alert-summary-value {
+        color: #d97706;
+    }
+
+    /* =========================================================
+       MAIN ALERT SECTION
+       ========================================================= */
+
+    .alerts-section {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    }
+
+    .alerts-section-header {
+        padding: 20px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .alerts-section-header h3 {
+        margin: 0 0 5px;
+        font-size: 17px;
+        font-weight: 700;
+        color: #111827;
+    }
+
+    .alerts-section-header p {
+        margin: 0;
+        color: #6b7280;
+        font-size: 12px;
+    }
+
+    /* =========================================================
+       TABLE
+       ========================================================= */
+
+    .alerts-table-wrap {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .alerts-table {
+        width: 100%;
+        min-width: 1050px;
+        border-collapse: collapse;
+    }
+
+    .alerts-table th,
+    .alerts-table td {
+        padding: 13px 14px;
+        border-bottom: 1px solid #e5e7eb;
+        text-align: left;
+        vertical-align: top;
+        font-size: 13px;
+    }
+
+    .alerts-table th {
+        background: #f8fafc;
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+    }
+
+    .alerts-table tbody tr:hover {
+        background: #f8fbff;
+    }
+
+    .alerts-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .threat-id {
+        font-weight: 700;
+        color: #2563eb;
+    }
+
+    .threat-title {
+        font-weight: 700;
+        color: #111827;
+    }
+
+    .threat-meta {
+        display: block;
+        margin-top: 4px;
+        color: #6b7280;
+        font-size: 10px;
+    }
+
+    /* =========================================================
+       STATUS
+       ========================================================= */
+
+    .alert-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 700;
+        font-size: 12px;
+    }
+
+    .alert-status.sent {
+        color: #16a34a;
+    }
+
+    .alert-status.failed {
+        color: #dc2626;
+    }
+
+    .alert-status.suppressed {
+        color: #d97706;
+    }
+
+    .alert-status.unknown {
+        color: #64748b;
+    }
+
+    /* =========================================================
+       SEVERITY
+       ========================================================= */
+
+    .severity-badge {
+        display: inline-block;
+        padding: 4px 9px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+    }
+
+    .severity-critical {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .severity-high {
+        background: #ffedd5;
+        color: #c2410c;
+    }
+
+    .severity-medium {
+        background: #fef3c7;
+        color: #b45309;
+    }
+
+    .severity-low {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .severity-unknown {
+        background: #f1f5f9;
+        color: #64748b;
+    }
+
+    /* =========================================================
+       SENT
+       ========================================================= */
+
+    .sent-yes {
+        color: #16a34a;
+        font-weight: 700;
+    }
+
+    .sent-no {
+        color: #dc2626;
+        font-weight: 700;
+    }
+
+    /* =========================================================
+       ERROR
+       ========================================================= */
+
+    .alert-error {
+        max-width: 350px;
+        color: #dc2626;
+        font-size: 12px;
+        word-break: break-word;
+    }
+
+    /* =========================================================
+       TIMESTAMP
+       ========================================================= */
+
+    .alert-timestamp {
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+        color: #374151;
+    }
+
+    .timestamp-label {
+        display: block;
+        margin-top: 3px;
+        color: #9ca3af;
+        font-size: 10px;
+    }
+
+    /* =========================================================
+       EMPTY
+       ========================================================= */
+
+    .alerts-empty {
+        padding: 60px 20px;
+        text-align: center;
+    }
+
+    .alerts-empty-icon {
+        font-size: 40px;
+        color: #94a3b8;
+        margin-bottom: 12px;
+    }
+
+    .alerts-empty-title {
+        color: #111827;
+        font-size: 17px;
+        font-weight: 700;
+        margin-bottom: 7px;
+    }
+
+    .alerts-empty-description {
+        color: #6b7280;
+        font-size: 13px;
+    }
+
+    /* =========================================================
+       FOOTER
+       ========================================================= */
+
+    .alerts-footer {
+        padding: 18px 0 5px;
+        text-align: center;
+        color: #94a3b8;
+        font-size: 11px;
+    }
+
+    /* =========================================================
+       DARK MODE
+       ========================================================= */
+
+    body.dark-mode .alerts-header h2 {
+        color: #ffffff;
+    }
+
+    body.dark-mode .alerts-header p {
+        color: #9ca3af;
+    }
+
+    body.dark-mode .timezone-badge {
+        background: #111827;
+        border-color: #1f2937;
+        color: #d1d5db;
+    }
+
+    body.dark-mode .alert-summary-card {
+        background: #111827;
+        border-color: #1f2937;
+    }
+
+    body.dark-mode .alert-summary-label {
+        color: #9ca3af;
+    }
+
+    body.dark-mode .alert-summary-value {
+        color: #ffffff;
+    }
+
+    body.dark-mode .alerts-section {
+        background: #111827;
+        border-color: #1f2937;
+    }
+
+    body.dark-mode .alerts-section-header {
+        border-color: #1f2937;
+    }
+
+    body.dark-mode .alerts-section-header h3 {
+        color: #ffffff;
+    }
+
+    body.dark-mode .alerts-section-header p {
+        color: #9ca3af;
+    }
+
+    body.dark-mode .alerts-table th {
+        background: #0f172a;
+        color: #94a3b8;
+    }
+
+    body.dark-mode .alerts-table th,
+    body.dark-mode .alerts-table td {
+        border-color: #1f2937;
+    }
+
+    body.dark-mode .alerts-table tbody tr:hover {
+        background: #172033;
+    }
+
+    body.dark-mode .threat-title {
+        color: #ffffff;
+    }
+
+    body.dark-mode .threat-meta {
+        color: #9ca3af;
+    }
+
+    body.dark-mode .alert-timestamp {
+        color: #d1d5db;
+    }
+
+    body.dark-mode .alerts-empty-title {
+        color: #ffffff;
+    }
+
+    body.dark-mode .alerts-empty-description {
+        color: #9ca3af;
+    }
+
+    /* =========================================================
+       RESPONSIVE
+       ========================================================= */
+
+    @media (max-width: 1100px) {
+        .alert-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 768px) {
+        .alerts-header {
+            display: block;
+        }
+
+        .timezone-badge {
+            display: inline-block;
+            margin-top: 12px;
+        }
+    }
+
+    @media (max-width: 520px) {
+        .alert-summary-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+<div class="alerts-page">
+
+    <!-- =========================================================
+         HEADER
+         ========================================================= -->
+
+    <div class="alerts-header">
+
+        <div>
+            <h2>Security Alerts</h2>
+
+            <p>
+                Autonomous threat detection and notification monitoring.
+            </p>
+        </div>
+
+        <div class="timezone-badge">
+            🕒 Display timezone:
+            <strong>Asia/Kolkata (IST)</strong>
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         CALCULATE COUNTS
+         ========================================================= -->
+
+    {% set total = alerts|length %}
+
+    {% set sent_count = namespace(value=0) %}
+    {% set failed_count = namespace(value=0) %}
+    {% set suppressed_count = namespace(value=0) %}
+
+    {% for alert in alerts %}
+
+        {% set status = (alert.status|string|upper) %}
+
+        {% if status == 'SENT' %}
+
+            {% set sent_count.value =
+                sent_count.value + 1
+            %}
+
+        {% elif status == 'FAILED' %}
+
+            {% set failed_count.value =
+                failed_count.value + 1
+            %}
+
+        {% elif status == 'SUPPRESSED' %}
+
+            {% set suppressed_count.value =
+                suppressed_count.value + 1
+            %}
+
+        {% endif %}
+
+    {% endfor %}
+
+
+    <!-- =========================================================
+         SUMMARY
+         ========================================================= -->
+
+    <section class="alert-summary-grid">
+
+        <div class="alert-summary-card">
+
+            <div class="alert-summary-label">
+                Total Alerts
+            </div>
+
+            <div class="alert-summary-value">
+                {{ total }}
+            </div>
+
+        </div>
+
+
+        <div class="alert-summary-card sent">
+
+            <div class="alert-summary-label">
+                Alerts Sent
+            </div>
+
+            <div class="alert-summary-value">
+                {{ sent_count.value }}
+            </div>
+
+        </div>
+
+
+        <div class="alert-summary-card failed">
+
+            <div class="alert-summary-label">
+                Failed Alerts
+            </div>
+
+            <div class="alert-summary-value">
+                {{ failed_count.value }}
+            </div>
+
+        </div>
+
+
+        <div class="alert-summary-card suppressed">
+
+            <div class="alert-summary-label">
+                Suppressed
+            </div>
+
+            <div class="alert-summary-value">
+                {{ suppressed_count.value }}
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         RECENT ALERTS
+         ========================================================= -->
+
+    <section class="alerts-section">
+
+        <div class="alerts-section-header">
+
+            <h3>
+                Recent Security Alerts
+            </h3>
+
+            <p>
+                Latest autonomous alert notifications generated by
+                the threat detection system.
+            </p>
+
+        </div>
+
+
+        {% if alerts %}
+
+        <div class="alerts-table-wrap">
+
+            <table class="alerts-table">
+
+                <thead>
+
+                    <tr>
+                        <th>#</th>
+                        <th>Threat ID</th>
+                        <th>Threat</th>
+                        <th>Severity</th>
+                        <th>Channel</th>
+                        <th>Status</th>
+                        <th>Sent</th>
+                        <th>Generated / Sent At</th>
+                        <th>Error</th>
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                {% for alert in alerts %}
+
+                    {% set status =
+                        (alert.status|string|upper)
+                    %}
+
+
+                    {% if alert.threat_event %}
+
+                        {% set threat =
+                            alert.threat_event
+                        %}
+
+                        {% set severity =
+                            (threat.severity|string|upper)
+                        %}
+
+                    {% else %}
+
+                        {% set threat = none %}
+                        {% set severity = 'UNKNOWN' %}
+
+                    {% endif %}
+
+
+                    <tr>
+
+                        <!-- NUMBER -->
+
+                        <td>
+                            <strong>
+                                {{ loop.index }}
+                            </strong>
+                        </td>
+
+
+                        <!-- THREAT ID -->
+
+                        <td>
+
+                            {% if threat %}
+
+                                <span class="threat-id">
+                                    #{{ threat.id }}
+                                </span>
+
+                            {% else %}
+
+                                —
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- THREAT -->
+
+                        <td>
+
+                            {% if threat %}
+
+                                <div class="threat-title">
+                                    {{ threat.title or 'Threat Detected' }}
+                                </div>
+
+
+                                {% if threat.threat_type %}
+
+                                    <span class="threat-meta">
+                                        Type:
+                                        {{ threat.threat_type }}
+                                    </span>
+
+                                {% endif %}
+
+
+                                {% if threat.detection_source %}
+
+                                    <span class="threat-meta">
+                                        Source:
+                                        {{ threat.detection_source }}
+                                    </span>
+
+                                {% endif %}
+
+                            {% else %}
+
+                                —
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- SEVERITY -->
+
+                        <td>
+
+                            {% if severity == 'CRITICAL' %}
+
+                                <span class="severity-badge severity-critical">
+                                    CRITICAL
+                                </span>
+
+                            {% elif severity == 'HIGH' %}
+
+                                <span class="severity-badge severity-high">
+                                    HIGH
+                                </span>
+
+                            {% elif severity == 'MEDIUM' %}
+
+                                <span class="severity-badge severity-medium">
+                                    MEDIUM
+                                </span>
+
+                            {% elif severity == 'LOW' %}
+
+                                <span class="severity-badge severity-low">
+                                    LOW
+                                </span>
+
+                            {% else %}
+
+                                <span class="severity-badge severity-unknown">
+                                    UNKNOWN
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- CHANNEL -->
+
+                        <td>
+                            {{ alert.channel or 'email' }}
+                        </td>
+
+
+                        <!-- STATUS -->
+
+                        <td>
+
+                            {% if status == 'SENT' %}
+
+                                <span class="alert-status sent">
+                                    ● SENT
+                                </span>
+
+                            {% elif status == 'FAILED' %}
+
+                                <span class="alert-status failed">
+                                    ● FAILED
+                                </span>
+
+                            {% elif status == 'SUPPRESSED' %}
+
+                                <span class="alert-status suppressed">
+                                    ● SUPPRESSED
+                                </span>
+
+                            {% else %}
+
+                                <span class="alert-status unknown">
+                                    ● {{ status or 'UNKNOWN' }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- SENT -->
+
+                        <td>
+
+                            {% if alert.sent %}
+
+                                <span class="sent-yes">
+                                    Yes
+                                </span>
+
+                            {% else %}
+
+                                <span class="sent-no">
+                                    No
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- TIMESTAMP -->
+
+                        <td class="alert-timestamp">
+
+                            {% if alert.sent_at %}
+
+                                {{ alert.sent_at|ist_full }}
+
+                            {% elif threat and threat.created_at %}
+
+                                {{ threat.created_at|ist_full }}
+
+                                <span class="timestamp-label">
+                                    Threat created
+                                </span>
+
+                            {% else %}
+
+                                —
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- ERROR -->
+
+                        <td>
+
+                            {% if alert.error %}
+
+                                <div class="alert-error">
+                                    {{ alert.error }}
+                                </div>
+
+                            {% else %}
+
+                                —
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        {% else %}
+
+        <!-- =====================================================
+             EMPTY STATE
+             ===================================================== -->
+
+        <div class="alerts-empty">
+
+            <div class="alerts-empty-icon">
+                <i class="fas fa-bell-slash"></i>
+            </div>
+
+            <div class="alerts-empty-title">
+                No Security Alerts
+            </div>
+
+            <div class="alerts-empty-description">
+                No security alerts are available for the current account.
+            </div>
+
+        </div>
+
+        {% endif %}
+
+    </section>
+
+
+    <!-- =========================================================
+         FOOTER
+         ========================================================= -->
+
+    <div class="alerts-footer">
+
+        Database timestamps remain UTC.
+        This page displays timestamps in
+        <strong>Asia/Kolkata (IST)</strong>.
+
+    </div>
+
+</div>
+
+{% endblock %}

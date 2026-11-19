@@ -1,0 +1,35 @@
+timestamp,level,username,source_ip,event_type,message,port,status
+2026-08-29 09:00:12,INFO,admin,192.168.1.10,LOGIN,User admin logged in successfully,443,SUCCESS
+2026-08-29 09:02:25,INFO,kameswari,192.168.1.11,LOGIN,User kameswari accessed dashboard,443,SUCCESS
+2026-08-29 09:05:10,INFO,analyst,192.168.1.12,FILE_ACCESS,User analyst downloaded security report,443,SUCCESS
+2026-08-29 10:15:01,WARNING,admin,192.168.1.50,LOGIN,Failed login attempt,443,FAILED
+2026-08-29 10:15:03,WARNING,admin,192.168.1.50,LOGIN,Failed login attempt,443,FAILED
+2026-08-29 10:15:05,WARNING,admin,192.168.1.50,LOGIN,Failed login attempt,443,FAILED
+2026-08-29 10:15:07,WARNING,admin,192.168.1.50,LOGIN,Failed login attempt,443,FAILED
+2026-08-29 10:15:09,WARNING,admin,192.168.1.50,LOGIN,Failed login attempt,443,FAILED
+2026-08-29 10:15:13,CRITICAL,admin,192.168.1.50,BRUTE_FORCE,Multiple authentication failures detected,443,BLOCKED
+2026-08-29 11:20:01,WARNING,scanner,10.0.0.25,PORT_SCAN,Connection attempt detected,21,BLOCKED
+2026-08-29 11:20:02,WARNING,scanner,10.0.0.25,PORT_SCAN,Connection attempt detected,22,BLOCKED
+2026-08-29 11:20:03,WARNING,scanner,10.0.0.25,PORT_SCAN,Connection attempt detected,23,BLOCKED
+2026-08-29 11:20:04,WARNING,scanner,10.0.0.25,PORT_SCAN,Connection attempt detected,25,BLOCKED
+2026-08-29 11:20:06,WARNING,scanner,10.0.0.25,PORT_SCAN,Connection attempt detected,80,BLOCKED
+2026-08-29 11:20:08,CRITICAL,scanner,10.0.0.25,PORT_SCAN,Port scanning behavior detected,443,BLOCKED
+2026-08-29 12:05:21,WARNING,webuser,172.16.0.20,SQL_INJECTION,Suspicious SQL query detected,443,BLOCKED
+2026-08-29 12:05:22,WARNING,webuser,172.16.0.20,SQL_INJECTION,SQL injection pattern detected,443,BLOCKED
+2026-08-29 12:05:23,CRITICAL,webuser,172.16.0.20,SQL_INJECTION,Malicious database query blocked,443,BLOCKED
+2026-08-29 13:10:15,WARNING,user1,192.168.1.75,MALWARE,Suspicious executable detected,445,DETECTED
+2026-08-29 13:10:17,WARNING,user1,192.168.1.75,MALWARE,Unknown process suspicious_payload.exe started,445,DETECTED
+2026-08-29 13:10:19,WARNING,user1,192.168.1.75,MALWARE,Malware signature detected,445,DETECTED
+2026-08-29 13:10:21,CRITICAL,user1,192.168.1.75,MALWARE,Malware activity detected,445,BLOCKED
+2026-08-29 14:25:10,WARNING,guest,192.168.1.80,PRIVILEGE_ESCALATION,Privileged operation attempted,22,DENIED
+2026-08-29 14:25:12,WARNING,guest,192.168.1.80,PRIVILEGE_ESCALATION,Unauthorized administrator access attempt,22,DENIED
+2026-08-29 14:25:15,CRITICAL,guest,192.168.1.80,PRIVILEGE_ESCALATION,Privilege escalation attempt detected,22,BLOCKED
+2026-08-29 15:30:01,WARNING,unknown,203.0.113.50,SUSPICIOUS_IP,Connection from suspicious IP,443,BLOCKED
+2026-08-29 15:30:04,WARNING,unknown,203.0.113.50,SUSPICIOUS_IP,Multiple suspicious requests received,443,BLOCKED
+2026-08-29 15:30:10,CRITICAL,unknown,203.0.113.50,SUSPICIOUS_IP,Suspicious IP activity confirmed,443,BLOCKED
+2026-08-29 16:10:01,WARNING,user2,192.168.1.90,COMMAND_INJECTION,Suspicious command execution request,443,BLOCKED
+2026-08-29 16:10:03,WARNING,user2,192.168.1.90,COMMAND_INJECTION,Shell command pattern detected,443,BLOCKED
+2026-08-29 16:10:05,CRITICAL,user2,192.168.1.90,COMMAND_INJECTION,Possible command injection attempt,443,BLOCKED
+2026-08-29 17:00:10,INFO,analyst,192.168.1.20,LOGIN,User logged in successfully,443,SUCCESS
+2026-08-29 17:05:25,INFO,analyst,192.168.1.20,FILE_ACCESS,Security report accessed,443,SUCCESS
+2026-08-29 17:15:12,INFO,analyst,192.168.1.20,LOGOUT,User logged out successfully,443,SUCCESS

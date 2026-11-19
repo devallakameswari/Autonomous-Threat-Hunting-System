@@ -1,0 +1,691 @@
+
+{% extends "base.html" %}
+
+{% block title %}
+    Profile
+{% endblock %}
+
+{% block page_title %}
+    Profile
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid py-4">
+
+    <!-- =====================================================
+         PROFILE HEADER
+         ===================================================== -->
+
+    <div class="mb-4">
+
+        <h2 class="fw-bold mb-1">
+            {% if user.role|lower == "admin" %}
+                Admin Profile
+            {% else %}
+                User Profile
+            {% endif %}
+        </h2>
+
+        <p class="text-muted mb-0">
+            Manage your account information and password.
+        </p>
+
+    </div>
+
+
+    <div class="row g-4">
+
+        <!-- =================================================
+             ACCOUNT INFORMATION
+             ================================================= -->
+
+        <div class="col-lg-5">
+
+            <div class="card shadow-sm border-0 h-100">
+
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+
+                    <h5 class="fw-bold mb-1">
+                        <i class="fas fa-user-circle me-2"></i>
+                        Account Information
+                    </h5>
+
+                    <p class="text-muted small mb-0">
+                        Your account details are read-only.
+                    </p>
+
+                </div>
+
+                <div class="card-body px-4 pb-4">
+
+                    <!-- Username -->
+
+                    <div class="mb-3">
+
+                        <label
+                            for="profileUsername"
+                            class="form-label fw-semibold"
+                        >
+                            Username
+                        </label>
+
+                        <input
+                            id="profileUsername"
+                            type="text"
+                            class="form-control"
+                            value="{{ user.username }}"
+                            readonly
+                            disabled
+                        >
+
+                    </div>
+
+
+                    <!-- Email -->
+
+                    <div class="mb-3">
+
+                        <label
+                            for="profileEmail"
+                            class="form-label fw-semibold"
+                        >
+                            Email
+                        </label>
+
+                        <input
+                            id="profileEmail"
+                            type="email"
+                            class="form-control"
+                            value="{{ user.email }}"
+                            readonly
+                            disabled
+                        >
+
+                    </div>
+
+
+                    <!-- Role -->
+
+                    <div class="mb-3">
+
+                        <label
+                            for="profileRole"
+                            class="form-label fw-semibold"
+                        >
+                            Role
+                        </label>
+
+                        <input
+                            id="profileRole"
+                            type="text"
+                            class="form-control"
+                            value="{{ user.role|capitalize }}"
+                            readonly
+                            disabled
+                        >
+
+                    </div>
+
+
+                    <div class="alert alert-info mb-0">
+
+                        <i class="fas fa-info-circle me-2"></i>
+
+                        <span>
+                            Username, email, and role cannot be
+                            changed from this page.
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             PASSWORD CHANGE
+             ================================================= -->
+
+        <div class="col-lg-7">
+
+            <div class="card shadow-sm border-0">
+
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+
+                    <h5 class="fw-bold mb-1">
+
+                        <i class="fas fa-lock me-2"></i>
+
+                        {% if user.role|lower == "admin" %}
+                            Change Admin Password
+                        {% else %}
+                            Change User Password
+                        {% endif %}
+
+                    </h5>
+
+                    <p class="text-muted small mb-0">
+                        Change the password for your currently
+                        logged-in account.
+                    </p>
+
+                </div>
+
+
+                <div class="card-body px-4 pb-4">
+
+                    <form
+                        method="POST"
+                        action="{{ url_for('auth.profile') }}"
+                        id="passwordChangeForm"
+                        novalidate
+                    >
+
+                        <!-- =================================
+                             CURRENT PASSWORD
+                             ================================= -->
+
+                        <div class="mb-4">
+
+                            <label
+                                for="current_password"
+                                class="form-label fw-semibold"
+                            >
+                                Current Password
+                            </label>
+
+                            <div class="input-group">
+
+                                <input
+                                    type="password"
+                                    class="form-control"
+                                    id="current_password"
+                                    name="current_password"
+                                    autocomplete="current-password"
+                                    required
+                                >
+
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-secondary"
+                                    onclick="togglePassword('current_password', this)"
+                                    title="Show/Hide password"
+                                >
+                                    <i class="fas fa-eye"></i>
+                                </button>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- =================================
+                             NEW PASSWORD
+                             ================================= -->
+
+                        <div class="mb-3">
+
+                            <label
+                                for="new_password"
+                                class="form-label fw-semibold"
+                            >
+                                New Password
+                            </label>
+
+                            <div class="input-group">
+
+                                <input
+                                    type="password"
+                                    class="form-control"
+                                    id="new_password"
+                                    name="new_password"
+                                    autocomplete="new-password"
+                                    minlength="8"
+                                    required
+                                >
+
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-secondary"
+                                    onclick="togglePassword('new_password', this)"
+                                    title="Show/Hide password"
+                                >
+                                    <i class="fas fa-eye"></i>
+                                </button>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- =================================
+                             PASSWORD REQUIREMENTS
+                             ================================= -->
+
+                        <div class="alert alert-light border mb-4">
+
+                            <div class="fw-semibold mb-2">
+                                Password requirements:
+                            </div>
+
+                            <ul
+                                class="mb-0 ps-3"
+                                id="passwordRequirements"
+                            >
+
+                                <li id="lengthRequirement">
+                                    At least 8 characters
+                                </li>
+
+                                <li id="letterRequirement">
+                                    At least one alphabet
+                                </li>
+
+                                <li id="numberRequirement">
+                                    At least one number
+                                </li>
+
+                                <li id="specialRequirement">
+                                    At least one special character
+                                </li>
+
+                            </ul>
+
+                        </div>
+
+
+                        <!-- =================================
+                             CONFIRM PASSWORD
+                             ================================= -->
+
+                        <div class="mb-4">
+
+                            <label
+                                for="confirm_password"
+                                class="form-label fw-semibold"
+                            >
+                                Confirm New Password
+                            </label>
+
+                            <div class="input-group">
+
+                                <input
+                                    type="password"
+                                    class="form-control"
+                                    id="confirm_password"
+                                    name="confirm_password"
+                                    autocomplete="new-password"
+                                    minlength="8"
+                                    required
+                                >
+
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-secondary"
+                                    onclick="togglePassword('confirm_password', this)"
+                                    title="Show/Hide password"
+                                >
+                                    <i class="fas fa-eye"></i>
+                                </button>
+
+                            </div>
+
+                            <div
+                                id="passwordMatchMessage"
+                                class="small mt-2"
+                            ></div>
+
+                        </div>
+
+
+                        <!-- =================================
+                             SUBMIT
+                             ================================= -->
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary w-100"
+                            id="changePasswordButton"
+                        >
+
+                            <i class="fas fa-key me-2"></i>
+
+                            {% if user.role|lower == "admin" %}
+                                Change Admin Password
+                            {% else %}
+                                Change My Password
+                            {% endif %}
+
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     PASSWORD JAVASCRIPT
+     ===================================================== -->
+
+<script>
+
+(function () {
+
+    "use strict";
+
+
+    // =====================================================
+    // SHOW / HIDE PASSWORD
+    // =====================================================
+
+    window.togglePassword = function (inputId, button) {
+
+        const input = document.getElementById(inputId);
+
+        if (!input) {
+            return;
+        }
+
+        const icon = button.querySelector("i");
+
+        if (input.type === "password") {
+
+            input.type = "text";
+
+            if (icon) {
+                icon.classList.remove("fa-eye");
+                icon.classList.add("fa-eye-slash");
+            }
+
+        } else {
+
+            input.type = "password";
+
+            if (icon) {
+                icon.classList.remove("fa-eye-slash");
+                icon.classList.add("fa-eye");
+            }
+
+        }
+
+    };
+
+
+    // =====================================================
+    // PASSWORD VALIDATION
+    // =====================================================
+
+    const newPassword = document.getElementById(
+        "new_password"
+    );
+
+    const confirmPassword = document.getElementById(
+        "confirm_password"
+    );
+
+    const lengthRequirement = document.getElementById(
+        "lengthRequirement"
+    );
+
+    const letterRequirement = document.getElementById(
+        "letterRequirement"
+    );
+
+    const numberRequirement = document.getElementById(
+        "numberRequirement"
+    );
+
+    const specialRequirement = document.getElementById(
+        "specialRequirement"
+    );
+
+    const passwordMatchMessage = document.getElementById(
+        "passwordMatchMessage"
+    );
+
+    const form = document.getElementById(
+        "passwordChangeForm"
+    );
+
+
+    function updateRequirement(
+        element,
+        valid
+    ) {
+
+        if (!element) {
+            return;
+        }
+
+        if (valid) {
+
+            element.classList.remove(
+                "text-danger"
+            );
+
+            element.classList.add(
+                "text-success"
+            );
+
+            element.innerHTML =
+                "✓ " +
+                element.textContent.replace(
+                    /^[✓✗]\s*/,
+                    ""
+                );
+
+        } else {
+
+            element.classList.remove(
+                "text-success"
+            );
+
+            element.classList.add(
+                "text-danger"
+            );
+
+            element.innerHTML =
+                "✗ " +
+                element.textContent.replace(
+                    /^[✓✗]\s*/,
+                    ""
+                );
+
+        }
+
+    }
+
+
+    function validatePassword() {
+
+        if (!newPassword) {
+            return false;
+        }
+
+        const value = newPassword.value;
+
+        const hasLength =
+            value.length >= 8;
+
+        const hasLetter =
+            /[A-Za-z]/.test(value);
+
+        const hasNumber =
+            /[0-9]/.test(value);
+
+        const hasSpecial =
+            /[^A-Za-z0-9]/.test(value);
+
+        updateRequirement(
+            lengthRequirement,
+            hasLength
+        );
+
+        updateRequirement(
+            letterRequirement,
+            hasLetter
+        );
+
+        updateRequirement(
+            numberRequirement,
+            hasNumber
+        );
+
+        updateRequirement(
+            specialRequirement,
+            hasSpecial
+        );
+
+        return (
+            hasLength
+            && hasLetter
+            && hasNumber
+            && hasSpecial
+        );
+
+    }
+
+
+    function validatePasswordMatch() {
+
+        if (!confirmPassword || !passwordMatchMessage) {
+            return false;
+        }
+
+        if (!confirmPassword.value) {
+
+            passwordMatchMessage.textContent = "";
+
+            return false;
+        }
+
+        if (
+            newPassword.value
+            === confirmPassword.value
+        ) {
+
+            passwordMatchMessage.textContent =
+                "✓ Passwords match.";
+
+            passwordMatchMessage.classList.remove(
+                "text-danger"
+            );
+
+            passwordMatchMessage.classList.add(
+                "text-success"
+            );
+
+            return true;
+
+        }
+
+        passwordMatchMessage.textContent =
+            "✗ Passwords do not match.";
+
+        passwordMatchMessage.classList.remove(
+            "text-success"
+        );
+
+        passwordMatchMessage.classList.add(
+            "text-danger"
+        );
+
+        return false;
+
+    }
+
+
+    if (newPassword) {
+
+        newPassword.addEventListener(
+            "input",
+            function () {
+
+                validatePassword();
+
+                validatePasswordMatch();
+
+            }
+        );
+
+    }
+
+
+    if (confirmPassword) {
+
+        confirmPassword.addEventListener(
+            "input",
+            function () {
+
+                validatePasswordMatch();
+
+            }
+        );
+
+    }
+
+
+    // =====================================================
+    // FINAL FORM VALIDATION
+    // =====================================================
+
+    if (form) {
+
+        form.addEventListener(
+            "submit",
+            function (event) {
+
+                const passwordValid =
+                    validatePassword();
+
+                const passwordsMatch =
+                    validatePasswordMatch();
+
+                if (
+                    !passwordValid
+                    || !passwordsMatch
+                ) {
+
+                    event.preventDefault();
+
+                    alert(
+                        "Password must be at least 8 characters and contain "
+                        + "at least one alphabet, one number, and one special character. "
+                        + "The confirmation password must also match."
+                    );
+
+                    return false;
+
+                }
+
+                return true;
+
+            }
+        );
+
+    }
+
+
+    // Initial state
+
+    if (newPassword) {
+        validatePassword();
+    }
+
+})();
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Reports - Threat Hunting System{% endblock %}
+
+{% block content %}
+<h2 class="page-title mb-4"><i class="fa-solid fa-file-pdf me-2"></i>Threat Reports</h2>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="panel">
+            <h5 class="panel-title">Generate a new PDF report</h5>
+            <p class="text-muted small">Summarizes detected threats, severity breakdown, MITRE ATT&amp;CK mappings, and AI-generated analyst summaries.</p>
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label">Include threats from the last</label>
+                    <select name="days" class="form-select">
+                        <option value="1">24 hours</option>
+                        <option value="7" selected>7 days</option>
+                        <option value="30">30 days</option>
+                        <option value="365">1 year</option>
+                       
+                    </select>
+                </div>
+   
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fa-solid fa-file-export me-1"></i>Generate Report
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="panel">
+            <h5 class="panel-title">Recent Reports</h5>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Filename</th>
+                            <th>Threats Included</th>
+                            <th>Generated</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in reports %}
+                        <tr>
+                            <td><i class="fa-solid fa-file-pdf text-danger me-1"></i>{{ r.filename }}</td>
+                            <td>{{ r.threat_count }}</td>
+                            <td class="text-muted small">{{ r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at else '—' }}</td>
+                            <td>
+                                <a href="{{ url_for('download_report', filename=r.filename) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fa-solid fa-download"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center text-muted py-4">No reports generated yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,4 +1,3 @@
-# Autonomous-Threat-Hunting-System
 # Autonomous Threat Hunting System
 
 An AI-powered, autonomous threat hunting platform that ingests raw security

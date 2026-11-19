@@ -1119,6 +1119,10 @@ class DetectionEngine:
                 ip_lines[source_ip].append(
                     line
                 )
+            else:
+                # Keep IP-less evidence too.  Do not discard lines just
+                # because another line in the same file contains an IP.
+                ip_lines[""].append(line)
 
         # --------------------------------------------------------
         # If no explicit source IP exists, analyze the whole file.
@@ -1253,6 +1257,24 @@ class DetectionEngine:
             r"\bsource\s*=\s*0\.0\.0\.0/0\b",
             r"\bfirewall\s+disabled\b",
             r"\bfirewall\s+off\b",
+        ]
+
+        sql_injection_patterns = [
+            r"\bsql\s+injection\b",
+            r"\bunion\s+select\b",
+            r"\bselect\s+.*\s+from\b",
+            r"\bor\s+1\s*=\s*1\b",
+            r"\band\s+1\s*=\s*1\b",
+            r"\bdrop\s+table\b",
+            r"\binsert\s+into\b",
+        ]
+
+        command_injection_patterns = [
+            r"\bcommand[_\s-]?injection\b",
+            r"\bcommand\s+injection\b",
+            r"[;&|]\s*(?:cmd|powershell|bash|sh)\b",
+            r"\bcmd\.exe\b",
+            r"\b/bin/(?:sh|bash)\b",
         ]
 
         # --------------------------------------------------------
@@ -1713,6 +1735,50 @@ class DetectionEngine:
                     )
 
             # ====================================================
+            # SQL INJECTION
+            # ====================================================
+
+            if any(
+                re.search(pattern, joined, re.IGNORECASE)
+                for pattern in sql_injection_patterns
+            ):
+
+                finding = self._direct_finding(
+                    "sql_injection",
+                    source_ip=source,
+                    evidence=matched_lines(
+                        grouped_lines,
+                        sql_injection_patterns,
+                    ),
+                    confidence=0.90,
+                )
+
+                if finding:
+                    findings.append(finding)
+
+            # ====================================================
+            # COMMAND INJECTION
+            # ====================================================
+
+            if any(
+                re.search(pattern, joined, re.IGNORECASE)
+                for pattern in command_injection_patterns
+            ):
+
+                finding = self._direct_finding(
+                    "command_injection",
+                    source_ip=source,
+                    evidence=matched_lines(
+                        grouped_lines,
+                        command_injection_patterns,
+                    ),
+                    confidence=0.90,
+                )
+
+                if finding:
+                    findings.append(finding)
+
+            # ====================================================
             # FIREWALL TAMPERING
             # ====================================================
 
@@ -1747,135 +1813,68 @@ class DetectionEngine:
     # ============================================================
 
     def _calculate_confidence(self, finding):
-        """Calculate the final finding confidence as a 0.0-1.0 value."""
+
         if not isinstance(finding, dict):
             return 0.0
 
-        # A detector can legitimately return confidence=0 while still
-        # providing another useful detector score. Treat zero as
-        # "not supplied" so valid threats do not become 0%.
-        explicit = finding.get("confidence")
-        if explicit is not None:
-            explicit_score = self._normalize_score(explicit, 0.0)
-            if explicit_score > 0.0:
-                return explicit_score
-
-        scores = []
-        detector_keys = (
-            "rule_score", "rule_confidence",
-            "ml_score", "ml_confidence",
-            "rf_probability", "rf_confidence",
-            "anomaly_score", "anomaly_confidence",
-            "ioc_score", "ti_score",
-            "threat_intelligence_score",
-            "correlation_score",
-            "llm_score", "llm_confidence",
+        explicit = finding.get(
+            "confidence"
         )
 
-        for key in detector_keys:
-            value = finding.get(key)
-            if value is None:
-                continue
-            score = self._normalize_score(value, 0.0)
-            if score > 0.0:
-                scores.append(score)
+        if explicit is not None:
 
-        # Support the normalized detector_scores dictionary used by the
-        # dashboard/application layer.
-        detector_scores = finding.get("detector_scores")
-        if isinstance(detector_scores, dict):
-            for value in detector_scores.values():
-                score = self._normalize_score(value, 0.0)
-                if score > 0.0:
-                    scores.append(score)
+            return self._normalize_score(
+                explicit,
+                0.0,
+            )
 
-        # Use the strongest actual detector evidence.
+        scores = []
+
+        for key in (
+            "rule_score",
+            "ml_score",
+            "anomaly_score",
+            "ioc_score",
+            "correlation_score",
+            "llm_score",
+        ):
+
+            value = finding.get(
+                key
+            )
+
+            if value is not None:
+
+                scores.append(
+                    self._normalize_score(
+                        value,
+                        0.0,
+                    )
+                )
+
         if scores:
             return max(scores)
 
-        # Last fallback for a known threat type. This prevents a known
-        # detected threat from being displayed as 0% only because a
-        # detector omitted its confidence field.
-        threat_type = self._normalize_threat_name(finding)
-        definition = self.THREAT_DEFINITIONS.get(threat_type, {})
-        return self._normalize_score(
-            definition.get("confidence", 0.0),
-            0.0,
+        threat_type = (
+            self._normalize_threat_name(
+                finding
+            )
         )
 
-    def _classify_detection_algorithm(self, finding):
-        """Classify a finding into the dashboard's detector labels.
+        definition = (
+            self.THREAT_DEFINITIONS.get(
+                threat_type,
+                {},
+            )
+        )
 
-        Labels are based on detector scores and explicit detector/source
-        metadata, not on the threat name and never on the upload channel.
-        Multiple contributing detectors become ``Hybrid``.
-        """
-        if not isinstance(finding, dict):
-            return "Rule-Based"
-
-        def score(*keys):
-            for key in keys:
-                value = finding.get(key)
-                if value is None:
-                    continue
-                try:
-                    value = float(value)
-                except (TypeError, ValueError):
-                    continue
-                if value > 1.0 and value <= 100.0:
-                    value /= 100.0
-                if value > 0:
-                    return value
-            return 0.0
-
-        sources=[]
-        for key in ("detection_sources", "detectors"):
-            value=finding.get(key)
-            if isinstance(value, (list, tuple, set)):
-                sources.extend(str(x).strip().lower() for x in value if str(x).strip())
-            elif value:
-                sources.append(str(value).strip().lower())
-
-        active=[]
-        if score("rule_score", "rule_confidence") > 0:
-            active.append("Rule-Based")
-        if score("ml_score", "ml_confidence", "rf_probability", "rf_confidence") > 0:
-            active.append("ML Model")
-        if score("anomaly_score", "anomaly_confidence") > 0:
-            active.append("Anomaly Detection")
-        if score("correlation_score") > 0:
-            active.append("Correlation Engine")
-        if score("llm_score") > 0 or self._to_bool(finding.get("llm_analyzed")) or any(s in {"llm_analysis", "llm", "large_language_model"} for s in sources):
-            active.append("LLM")
-
-        rule_sources={
-            "threat_detection_rules", "authentication_analysis",
-            "network_event_analysis", "suspicious_ip", "ioc_manager",
-            "rule", "rules", "rule_based", "signature", "signature_match",
-        }
-        if any(s in rule_sources for s in sources):
-            active.append("Rule-Based")
-
-        if any(s in {"correlation", "correlation_engine", "attack_correlation", "attack_chain", "correlator"} for s in sources):
-            active.append("Correlation Engine")
-
-        active=list(dict.fromkeys(active))
-        if len(active) > 1:
-            return "Hybrid"
-        if active:
-            return active[0]
-
-        source=self._safe_text(finding.get("detected_by") or finding.get("detector"), "").strip().lower()
-        if "machine_learning" in source or source in {"ml", "ml_model", "classifier"}:
-            return "ML Model"
-        if "anomaly" in source:
-            return "Anomaly Detection"
-        if "llm" in source:
-            return "LLM"
-        if "correl" in source or "attack_chain" in source:
-            return "Correlation Engine"
-        return "Rule-Based"
-
+        return self._normalize_score(
+            definition.get(
+                "confidence",
+                0.0,
+            ),
+            0.0,
+        )
 
     # ============================================================
     # SEVERITY
@@ -2088,13 +2087,6 @@ class DetectionEngine:
                 ),
             )
         )
-
-        # Recalculate the high-level detector after merging all detector
-        # contributions. This is what makes combined findings show Hybrid.
-        merged["detected_by"] = (
-            self._classify_detection_algorithm(merged)
-        )
-        merged["detector"] = merged["detected_by"]
 
         return merged
 
@@ -2575,13 +2567,6 @@ class DetectionEngine:
             )
         )
 
-        # ``detected_by`` is the dashboard label; raw detector names remain
-        # available in detection_sources/detectors.
-        finding["detected_by"] = (
-            self._classify_detection_algorithm(finding)
-        )
-        finding["detector"] = finding["detected_by"]
-
         return finding
 
     # ============================================================
@@ -2920,19 +2905,6 @@ class DetectionEngine:
                 )
 
                 text = ""
-
-        elif isinstance(
-            log_data,
-            (list, tuple),
-        ):
-
-            # Flask upload helpers return a list of raw log lines. Preserve
-            # line boundaries so each record/source IP is parsed independently.
-            text = "\n".join(
-                self._safe_text(line)
-                for line in log_data
-                if self._safe_text(line).strip()
-            )
 
         else:
 

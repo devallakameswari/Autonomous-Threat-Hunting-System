@@ -1,0 +1,41 @@
+# Environment
+.env
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+
+# Database
+Database/*.db
+Database/*.sqlite3
+
+# Uploads & Reports (keep folder placeholders only)
+uploads/*
+!uploads/.gitkeep
+reports/*
+!reports/.gitkeep
+
+# Trained models (regenerate via train_model.py, or keep if you want to ship them)
+# Machine_learning/models/*.pkl
+# Machine_learning/models/*.keras
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+# Protect all database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Protect instance database folder
+instance/
+
+# Protect environment secrets
+.env.*
+!.env.example

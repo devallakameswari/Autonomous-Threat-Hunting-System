@@ -418,8 +418,8 @@ def login():
 def register():
 
     return render_template(
-        "login.html",
-        show_register=True
+        "register.html",
+        show_login=True
     )
 
 

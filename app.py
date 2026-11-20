@@ -40,7 +40,7 @@ except Exception:
     pass
 
 import os
-import hmac
+
 import json
 import logging
 import re
@@ -82,7 +82,6 @@ from Database.database import (
 )
 
 from Database.models import (
-    User,
     LogEntry,
     ThreatEvent,
     Alert,
@@ -3076,122 +3075,6 @@ def create_app():
     init_db(
         app
     )
-        # TEMPORARY: Protected import of existing user accounts
-    @app.route("/_temporary/import-existing-users", methods=["POST"])
-    def import_existing_users():
-
-        expected_token = os.environ.get(
-            "ACCOUNT_IMPORT_TOKEN", ""
-        )
-
-        supplied_token = request.headers.get(
-            "X-Import-Token", ""
-        )
-
-        if not expected_token or not hmac.compare_digest(
-            supplied_token, expected_token
-        ):
-            return jsonify({
-                "success": False,
-                "message": "Forbidden"
-            }), 403
-
-        if User.query.count() != 0:
-            return jsonify({
-                "success": False,
-                "message": "Import refused: users already exist"
-            }), 409
-
-        payload = request.get_json(silent=True) or {}
-        users = payload.get("users")
-
-        if not isinstance(users, list) or len(users) != 2:
-            return jsonify({
-                "success": False,
-                "message": "Exactly two user records are required"
-            }), 400
-
-        required_fields = {
-            "id", "username", "email", "password_hash", "role"
-        }
-
-        usernames = set()
-        emails = set()
-        new_users = []
-
-        for item in users:
-            if not isinstance(item, dict):
-                return jsonify({
-                    "success": False,
-                    "message": "Invalid user record"
-                }), 400
-
-            if not required_fields.issubset(item):
-                return jsonify({
-                    "success": False,
-                    "message": "Missing user fields"
-                }), 400
-
-            try:
-                user_id = int(item["id"])
-            except (TypeError, ValueError):
-                return jsonify({
-                    "success": False,
-                    "message": "Invalid user ID"
-                }), 400
-
-            username = str(item["username"]).strip()
-            email = str(item["email"]).strip()
-            password_hash = str(item["password_hash"])
-            role = str(item["role"]).strip().lower()
-
-            if (
-                user_id <= 0
-                or not username
-                or not email
-                or not password_hash
-                or role not in {"admin", "analyst"}
-            ):
-                return jsonify({
-                    "success": False,
-                    "message": "Invalid user data"
-                }), 400
-
-            if username in usernames or email in emails:
-                return jsonify({
-                    "success": False,
-                    "message": "Duplicate user records"
-                }), 400
-
-            usernames.add(username)
-            emails.add(email)
-
-            new_users.append(User(
-                id=user_id,
-                username=username,
-                email=email,
-                password_hash=password_hash,
-                role=role
-            ))
-
-        try:
-            db.session.add_all(new_users)
-            db.session.commit()
-
-            return jsonify({
-                "success": True,
-                "message": "Existing accounts imported",
-                "count": len(new_users)
-            }), 200
-
-        except Exception:
-            db.session.rollback()
-            app.logger.exception("Temporary account import failed")
-
-            return jsonify({
-                "success": False,
-                "message": "Import failed"
-            }), 500
 
     ensure_alert_status_column(app)
     ensure_threat_owner_column(app)

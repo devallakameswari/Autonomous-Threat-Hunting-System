@@ -32,7 +32,7 @@ ENV_FILE = os.path.join(
 
 load_dotenv(
     ENV_FILE,
-    override=True,
+    override=False,
 )
 
 

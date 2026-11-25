@@ -40,13 +40,15 @@ except Exception:
     pass
 
 import os
-
 import json
 import logging
 import re
 import threading
 import time
 import hashlib
+import hmac
+import sqlite3
+import tempfile
 from pathlib import Path
 from collections import deque
 
@@ -62,6 +64,7 @@ from flask import (
     url_for,
     flash,
     send_from_directory,
+    send_file,
     jsonify,
 )
 
@@ -70,9 +73,7 @@ from flask_login import (
     current_user,
 )
 
-from sqlalchemy import or_, inspect, text, event
-from sqlalchemy.engine import Engine
-from sqlalchemy.exc import OperationalError
+from sqlalchemy import or_, inspect, text
 
 from config import Config
 
@@ -2001,19 +2002,6 @@ def build_threat_event(finding):
         )
     )
 
-    # If a detector omitted confidence, use the canonical confidence
-    # for the normalized threat type instead of storing 0%.
-    if confidence <= 0:
-        canonical_definition = getattr(
-            DetectionEngine,
-            "THREAT_DEFINITIONS",
-            {},
-        ).get(threat_type)
-        if canonical_definition:
-            confidence = normalize_percentage(
-                canonical_definition.get("confidence", 0)
-            )
-
     source_ip = safe_text(
         finding.get("source_ip")
         or finding.get("src_ip")
@@ -3008,26 +2996,6 @@ def threat_to_dashboard_dict(threat):
 
 
 # ================================================================
-# SQLITE CONNECTION PRAGMAS
-# ================================================================
-# WAL allows readers and a writer to coexist more reliably. The busy
-# timeout complements the SQLAlchemy connect timeout above.
-@event.listens_for(Engine, "connect")
-def configure_sqlite_connection(dbapi_connection, connection_record):
-    try:
-        cursor = dbapi_connection.cursor()
-        try:
-            cursor.execute("PRAGMA busy_timeout=30000")
-            cursor.execute("PRAGMA journal_mode=WAL")
-        finally:
-            cursor.close()
-    except Exception:
-        # Non-SQLite connections or unsupported PRAGMAs should not prevent
-        # the Flask application from starting.
-        pass
-
-
-# ================================================================
 # APPLICATION FACTORY
 # ================================================================
 
@@ -3041,19 +3009,6 @@ def create_app():
     app.config.from_object(
         Config
     )
-
-    # ============================================================
-    # SQLITE CONCURRENCY / DATABASE LOCK PROTECTION
-    # ============================================================
-    # SQLite may briefly be busy when the live monitor, log analysis,
-    # alert writer, or report generator accesses the database at the
-    # same time. Give SQLite time to wait for the writer to finish.
-    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-        "connect_args": {
-            "timeout": 30
-        },
-        "pool_pre_ping": True,
-    }
 
     # ------------------------------------------------------------
     # Timestamp display
@@ -3100,6 +3055,118 @@ def create_app():
         forgot_password_bp,
         url_prefix="/forgot-password",
     )
+
+    # ============================================================
+    # TEMPORARY ADMIN-ONLY LIVE DATABASE BACKUP
+    # ============================================================
+    # Remove this route and DB_EXPORT_TOKEN after the live backup
+    # has been downloaded and verified.
+    @app.route("/admin/database-export", methods=["GET", "POST"])
+    @login_required
+    def temporary_database_export():
+        if not current_user_is_admin():
+            return jsonify({
+                "success": False,
+                "message": "Administrator access is required.",
+            }), 403
+
+        if request.method == "GET":
+            return (
+                "<!doctype html><html><head><title>Database Backup</title></head>"
+                "<body><h2>Temporary Database Backup</h2>"
+                "<p>Enter the export token configured by the administrator.</p>"
+                "<form method='post'>"
+                "<input type='password' name='token' required "
+                "autocomplete='off' placeholder='Export token'>"
+                "<button type='submit'>Download database backup</button>"
+                "</form></body></html>"
+            )
+
+        expected_token = os.getenv("DB_EXPORT_TOKEN", "").strip()
+        supplied_token = request.form.get("token", "").strip()
+
+        if not expected_token:
+            return jsonify({
+                "success": False,
+                "message": "Database export is not configured.",
+            }), 503
+
+        if not supplied_token or not hmac.compare_digest(
+            supplied_token, expected_token
+        ):
+            return jsonify({
+                "success": False,
+                "message": "Invalid export authorization.",
+            }), 403
+
+        if db.engine.url.get_backend_name() != "sqlite":
+            return jsonify({
+                "success": False,
+                "message": "The active database is not SQLite.",
+            }), 409
+
+        source_path = db.engine.url.database
+        if not source_path or source_path == ":memory:":
+            return jsonify({
+                "success": False,
+                "message": "A file-based SQLite database is required.",
+            }), 409
+
+        source_path = os.path.abspath(source_path)
+        if not os.path.isfile(source_path):
+            return jsonify({
+                "success": False,
+                "message": "The active SQLite database file was not found.",
+            }), 404
+
+        snapshot_path = None
+        try:
+            fd, snapshot_path = tempfile.mkstemp(
+                prefix="ath_live_backup_",
+                suffix=".sqlite3",
+            )
+            os.close(fd)
+
+            # SQLite's backup API creates a consistent snapshot even while
+            # the application is receiving database reads/writes.
+            source_db = sqlite3.connect(source_path, timeout=30)
+            backup_db = sqlite3.connect(snapshot_path, timeout=30)
+            try:
+                source_db.backup(backup_db)
+            finally:
+                backup_db.close()
+                source_db.close()
+
+            response = send_file(
+                snapshot_path,
+                as_attachment=True,
+                download_name="render_live_database_backup.sqlite3",
+                mimetype="application/vnd.sqlite3",
+            )
+
+            def remove_snapshot():
+                try:
+                    if snapshot_path and os.path.exists(snapshot_path):
+                        os.remove(snapshot_path)
+                except OSError:
+                    app.logger.warning(
+                        "Could not remove temporary database snapshot."
+                    )
+
+            response.call_on_close(remove_snapshot)
+            return response
+
+        except Exception:
+            if snapshot_path and os.path.exists(snapshot_path):
+                try:
+                    os.remove(snapshot_path)
+                except OSError:
+                    pass
+            app.logger.exception("Temporary live database export failed.")
+            return jsonify({
+                "success": False,
+                "message": "Database backup could not be created.",
+            }), 500
 
     # ============================================================
     # DETECTION ENGINE
@@ -3153,6 +3220,20 @@ def create_app():
                     "message": "Security event is too large. Maximum length is 20,000 characters.",
                     "data": None,
                 }), 400
+
+            # Manual analysis replaces the previous Analyze-page results.
+            try:
+                clear_previous_analysis_results()
+                db.session.commit()
+            except Exception as exc:
+                db.session.rollback()
+                app.logger.exception("Unable to clear previous manual analysis results")
+                return jsonify({
+                    "success": False,
+                    "error": "ANALYSIS_RESET_FAILED",
+                    "message": f"Unable to prepare a clean analysis session: {exc}",
+                    "data": None,
+                }), 500
 
             # Run the exact same detector used by uploaded log files.
             result = detection_engine.run(
@@ -3740,14 +3821,32 @@ def create_app():
     # ================================================================
 
     def clear_previous_analysis_results():
-        """Deprecated compatibility helper.
+        """Remove previous Analyze-page file/manual threat results."""
+        # Everything except explicitly marked live-monitoring records is
+        # treated as an Analyze-page result. This also removes legacy rows
+        # created before the new source markers were introduced.
+        old_events = (
+            scoped_threat_query()
+            .filter(ThreatEvent.detection_source != "live_monitor")
+            .all()
+        )
+        if not old_events:
+            return 0
 
-        ThreatEvent records are now permanent. Uploaded-file, manual, and live
-        detection results must remain in the database so they continue to appear
-        on Dashboard, Threats, History, Reports, and Alerts.
-        """
-        return 0
+        old_ids = [event.id for event in old_events]
+        Alert.query.filter(
+            Alert.threat_event_id.in_(old_ids)
+        ).delete(synchronize_session=False)
 
+        for event in old_events:
+            db.session.delete(event)
+
+        db.session.flush()
+        app.logger.info(
+            "Cleared %s previous Analyze-page threat result(s)",
+            len(old_events),
+        )
+        return len(old_events)
 
     # LOG UPLOAD / ANALYSIS
     # ================================================================
@@ -3758,11 +3857,6 @@ def create_app():
     )
     @login_required
     def upload():
-
-        # GET /upload -> open the full Analyze Logs page.
-        # The existing POST /upload processing remains unchanged.
-        if request.method == "GET":
-            return redirect(url_for("auth_analyze"))
 
         if request.method == "POST":
 
@@ -3781,6 +3875,20 @@ def create_app():
                 return redirect(
                     url_for("upload")
                 )
+
+            # New upload = new analysis session.
+            try:
+                clear_previous_analysis_results()
+                db.session.commit()
+            except Exception as exc:
+                db.session.rollback()
+                app.logger.exception("Unable to clear previous analysis results")
+                flash(
+                    "Unable to prepare a clean analysis session: "
+                    f"{exc}",
+                    "danger",
+                )
+                return redirect(url_for("upload"))
 
             try:
 
@@ -4048,59 +4156,6 @@ def create_app():
                 normalized_raw_findings,
                 normalized_records,
             )
-
-            # ====================================================
-            # RAW-LOG SAFETY NET
-            #
-            # Some parser/rule combinations can return only a small
-            # subset of the threats that are plainly present in the
-            # uploaded file. The DetectionEngine also provides a direct
-            # raw-text detector for exactly this case. Merge its findings
-            # into this upload before the normal within-upload dedup.
-            #
-            # IMPORTANT:
-            # This does NOT compare with the database. Therefore old
-            # manual/file/live threats remain untouched, and every new
-            # upload is stored independently.
-            # ====================================================
-            try:
-                direct_detector = getattr(
-                    detection_engine,
-                    "_direct_threat_detection",
-                    None,
-                )
-                if callable(direct_detector):
-                    direct_findings = direct_detector(
-                        raw_lines
-                    )
-                    direct_findings = normalize_findings(
-                        direct_findings
-                    )
-
-                    for direct_finding in direct_findings:
-                        if not isinstance(direct_finding, dict):
-                            continue
-                        direct_finding.setdefault(
-                            "input_source",
-                            "file_upload",
-                        )
-                        if not direct_finding.get("detection_source"):
-                            direct_finding["detection_source"] = (
-                                "detection_engine"
-                            )
-
-                    if direct_findings:
-                        app.logger.info(
-                            "Raw-log safety net added %s direct finding(s).",
-                            len(direct_findings),
-                        )
-                        normalized_raw_findings.extend(
-                            direct_findings
-                        )
-            except Exception:
-                app.logger.exception(
-                    "Raw-log safety-net detection failed"
-                )
 
             # ====================================================
             # LOG RAW FINDINGS
@@ -4875,64 +4930,38 @@ def create_app():
                     url_for("report")
                 )
 
-            # Save the report history record separately from PDF generation.
-            # SQLite can be temporarily locked by the live monitor or another
-            # request, so retry only the transaction that is known to be a
-            # transient SQLite lock.
-            report_record = Report(
-                filename=filename,
-                generated_by=current_user.id,
-                threat_count=len(threat_dicts),
+            db.session.add(
+
+                Report(
+
+                    filename=filename,
+
+                    generated_by=(
+                        current_user.id
+                    ),
+
+                    threat_count=len(
+                        threat_dicts
+                    ),
+                )
             )
 
-            db.session.add(report_record)
+            try:
 
-            report_saved = False
-            last_error = None
+                db.session.commit()
 
-            for attempt in range(5):
-                try:
-                    db.session.commit()
-                    report_saved = True
-                    app.logger.info(
-                        "Report record saved successfully: %s",
-                        filename,
-                    )
-                    break
+            except Exception as exc:
 
-                except OperationalError as exc:
-                    db.session.rollback()
-                    last_error = exc
+                db.session.rollback()
 
-                    if "database is locked" not in str(exc).lower():
-                        app.logger.exception(
-                            "Unexpected database error while saving report"
-                        )
-                        break
-
-                    app.logger.warning(
-                        "SQLite database locked while saving report; retry %s/5",
-                        attempt + 1,
-                    )
-
-                    # 0.5, 1.0, 1.5, 2.0, 2.5 seconds.
-                    time.sleep(0.5 * (attempt + 1))
-
-                except Exception as exc:
-                    db.session.rollback()
-                    last_error = exc
-                    app.logger.exception(
-                        "Report record could not be saved"
-                    )
-                    break
-
-            if not report_saved:
                 flash(
-                    "Report PDF was generated, but the report history "
-                    "record could not be saved. "
-                    f"Database error: {last_error}",
+
+                    "Report record could not be saved: "
+                    f"{exc}",
+
                     "danger",
                 )
+
                 return redirect(
                     url_for("report")
                 )

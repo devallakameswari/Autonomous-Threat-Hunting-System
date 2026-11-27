@@ -122,14 +122,33 @@ class Config:
         "threat_hunting.db",
     )
 
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URL",
-        f"sqlite:///{DB_PATH}",
+    _database_url = os.getenv("DATABASE_URL", "").strip()
+
+    if _database_url.startswith("postgres://"):
+        _database_url = _database_url.replace(
+            "postgres://",
+            "postgresql+psycopg://",
+            1,
+        )
+
+    elif _database_url.startswith("postgresql://"):
+        _database_url = _database_url.replace(
+            "postgresql://",
+            "postgresql+psycopg://",
+            1,
+        )
+
+    SQLALCHEMY_DATABASE_URI = (
+        _database_url
+        if _database_url
+        else f"sqlite:///{DB_PATH}"
     )
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+    }
     # ============================================================
     # FILE UPLOADS
     # ============================================================
